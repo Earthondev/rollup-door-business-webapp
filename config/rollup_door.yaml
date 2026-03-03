@@ -1,0 +1,23 @@
+timezone: Asia/Bangkok
+environment: development
+spreadsheet_title: Rollup_Door_Business_System
+spreadsheet_id: ""
+margin_threshold_pct: 20
+logs_dir: logs
+backup_dir: tmp/rollup_backups
+
+google:
+  token_path: credentials/job_tracker_token.json
+  client_secrets_path: credentials/client_secrets.json
+  service_account_json: ""
+
+security:
+  access_key_id: change-me
+  access_key_secret: change-me-secret
+  timestamp_tolerance_seconds: 300
+  rate_limit_per_minute: 180
+
+web:
+  host: 127.0.0.1
+  port: 8080
+  debug: true

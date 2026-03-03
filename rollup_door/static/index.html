@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rollup Door Ops Web App</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="bg-gradient"></div>
+    <main class="app-shell">
+      <header class="hero">
+        <p class="eyebrow">Rollup Door Business System</p>
+        <h1>ระบบกรอกข้อมูล + คำนวณราคา + วิเคราะห์กำไร</h1>
+        <p class="subtitle">
+          ใช้สำหรับทีมติดตั้ง/ซ่อมประตูเหล็กม้วน เพื่อเก็บข้อมูลธุรกิจลง Google Sheets และตัดสินใจจากข้อมูลจริง
+        </p>
+      </header>
+
+      <section class="panel settings-panel">
+        <h2>API Access Settings</h2>
+        <p class="hint">กรอก Access Key/Secret จากไฟล์ config เพื่อส่งคำขอแบบ signed</p>
+        <div class="form-grid">
+          <label>
+            Access Key ID
+            <input id="accessKeyId" type="text" placeholder="change-me" />
+          </label>
+          <label>
+            Access Key Secret
+            <input id="accessKeySecret" type="password" placeholder="change-me-secret" />
+          </label>
+        </div>
+        <div class="inline-actions">
+          <button id="saveAccessBtn" class="btn-primary">บันทึกค่า</button>
+          <button id="clearAccessBtn" class="btn-secondary" type="button">ล้างค่า</button>
+          <span id="accessStatus" class="status-text"></span>
+        </div>
+      </section>
+
+      <nav class="tab-nav" role="tablist" aria-label="Sections">
+        <button class="tab-btn active" data-tab="intake">Quick Intake</button>
+        <button class="tab-btn" data-tab="calculator">Calculator</button>
+        <button class="tab-btn" data-tab="knowledge">Knowledge</button>
+        <button class="tab-btn" data-tab="analytics">Analytics</button>
+      </nav>
+
+      <section class="tab-content active" id="tab-intake">
+        <div class="panel">
+          <h2>Quick Intake (เคสใหม่)</h2>
+          <form id="intakeForm" class="stack-form">
+            <div class="form-grid">
+              <label>ผู้กรอก<input name="creator_name" required /></label>
+              <label>อำเภอ<input name="district" required /></label>
+              <label>
+                ประเภทงาน
+                <select name="job_type" required>
+                  <option value="ติดตั้งใหม่">ติดตั้งใหม่</option>
+                  <option value="ซ่อม">ซ่อม</option>
+                </select>
+              </label>
+              <label>
+                ประเภทสถานที่
+                <select name="site_type" required>
+                  <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+                  <option value="โกดัง">โกดัง</option>
+                  <option value="โรงงาน">โรงงาน</option>
+                </select>
+              </label>
+              <label>ความกว้าง (มม.)<input name="width_mm" type="number" min="0" required /></label>
+              <label>ความสูง (มม.)<input name="height_mm" type="number" min="0" required /></label>
+              <label>
+                มอเตอร์
+                <select name="motor_type" required>
+                  <option value="Manual">Manual</option>
+                  <option value="Chain Hoist">Chain Hoist</option>
+                  <option value="Electric">Electric</option>
+                </select>
+              </label>
+              <label>การใช้งาน/วัน (ครั้ง)<input name="usage_per_day" type="number" min="0" required /></label>
+              <label>
+                Risk Level
+                <select name="risk_level">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+              <label>Target Margin (%)<input name="target_margin_pct" type="number" min="1" max="90" value="30" /></label>
+              <label>Warranty (เดือน)<input name="warranty_months" type="number" min="0" value="12" /></label>
+              <label class="checkbox-label">
+                <input name="urgent_flag" type="checkbox" /> งานด่วน
+              </label>
+            </div>
+
+            <h3>ต้นทุน</h3>
+            <div class="form-grid">
+              <label>ค่าวัสดุ<input name="material_cost" type="number" min="0" step="0.01" required /></label>
+              <label>ค่าแรง<input name="labor_cost" type="number" min="0" step="0.01" required /></label>
+              <label>ค่าเดินทาง<input name="travel_cost" type="number" min="0" step="0.01" required /></label>
+              <label>เผื่อความเสี่ยง (override)<input name="risk_buffer_cost" type="number" min="0" step="0.01" /></label>
+              <label>เผื่อรับประกัน (override)<input name="warranty_buffer_cost" type="number" min="0" step="0.01" /></label>
+              <label>ราคาขายจริง (ถ้ามี)<input name="final_price" type="number" min="0" step="0.01" /></label>
+            </div>
+
+            <label>
+              หมายเหตุ
+              <textarea name="notes" rows="3" placeholder="ข้อจำกัดหน้างาน, เงื่อนไขลูกค้า, จุดเสี่ยง"></textarea>
+            </label>
+
+            <div class="inline-actions">
+              <button class="btn-primary" type="submit">บันทึกเคส</button>
+            </div>
+          </form>
+          <pre id="intakeResult" class="result-box"></pre>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-calculator">
+        <div class="panel">
+          <h2>Calculator</h2>
+          <form id="calculatorForm" class="stack-form">
+            <div class="form-grid">
+              <label>ค่าวัสดุ<input name="material_cost" type="number" min="0" step="0.01" required /></label>
+              <label>ค่าแรง<input name="labor_cost" type="number" min="0" step="0.01" required /></label>
+              <label>ค่าเดินทาง<input name="travel_cost" type="number" min="0" step="0.01" required /></label>
+              <label>
+                Risk Level
+                <select name="risk_level">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+              <label>Warranty (เดือน)<input name="warranty_months" type="number" min="0" value="12" /></label>
+              <label>Target Margin (%)<input name="target_margin_pct" type="number" min="1" max="90" value="30" /></label>
+            </div>
+            <div class="inline-actions"><button class="btn-primary" type="submit">คำนวณ</button></div>
+          </form>
+          <pre id="calculatorResult" class="result-box"></pre>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-knowledge">
+        <div class="panel">
+          <h2>Knowledge Q&A</h2>
+          <form id="knowledgeForm" class="stack-form">
+            <div class="form-grid">
+              <label>ค้นหา<input name="q" placeholder="เช่น มอเตอร์, ซ่อม, เสียงดัง" /></label>
+              <label>Tag<input name="tag" placeholder="เช่น motor" /></label>
+            </div>
+            <div class="inline-actions"><button class="btn-primary" type="submit">ค้นหา</button></div>
+          </form>
+          <div id="knowledgeResults" class="knowledge-list"></div>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-analytics">
+        <div class="panel">
+          <h2>Analytics Summary</h2>
+          <form id="analyticsForm" class="stack-form">
+            <div class="form-grid">
+              <label>จากวันที่<input name="from" type="date" /></label>
+              <label>ถึงวันที่<input name="to" type="date" /></label>
+            </div>
+            <div class="inline-actions">
+              <button class="btn-primary" type="submit">โหลดสรุป</button>
+              <button class="btn-secondary" id="refreshAnalyticsBtn" type="button">รีเฟรช analytics_daily</button>
+            </div>
+          </form>
+          <div id="analyticsCards" class="analytics-cards"></div>
+          <pre id="analyticsResult" class="result-box"></pre>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS
+.DS_Store
+
+# Secrets / credentials
+credentials/
+.env
+.env.*
+
+# Runtime outputs
+logs/
+tmp/
+output/
+
+# Local caches
+.pytest_cache/
+.mypy_cache/
+coverage.xml

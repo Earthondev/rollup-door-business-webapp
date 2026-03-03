@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: rollup-door-webapp
+    runtime: python
+    plan: free
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /api/v1/health
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "rollup_door.app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --threads 4
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: ROLLUP_ENV
+        value: production
+      - key: ROLLUP_SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: ROLLUP_ACCESS_KEY_ID
+        sync: false
+      - key: ROLLUP_ACCESS_KEY_SECRET
+        sync: false
+      - key: ROLLUP_MARGIN_THRESHOLD_PCT
+        value: "20"
+      - key: ROLLUP_RATE_LIMIT_PER_MINUTE
+        value: "180"

@@ -1,0 +1,9 @@
+{
+  "name": "Rollup Door Business Web App",
+  "short_name": "RollupOps",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6f8",
+  "theme_color": "#0b6b7e",
+  "icons": []
+}

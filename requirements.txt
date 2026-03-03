@@ -1,0 +1,7 @@
+beautifulsoup4>=4.12.3
+Flask>=3.0.0
+google-api-python-client>=2.160.0
+google-auth-oauthlib>=1.2.1
+gunicorn>=23.0.0
+PyYAML>=6.0.2
+requests>=2.32.3

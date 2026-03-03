@@ -1,0 +1,38 @@
+timezone: Asia/Bangkok
+sources:
+- jobthai
+- jobsdb
+- linkedin
+queries:
+- R&D chemist
+- analytical chemist
+- QA chemist
+- QC chemist
+- laboratory analyst
+- laboratory data analyst
+- quality data analyst
+- process data analyst
+- chemist excel vba
+- ISO/IEC 17025
+location_scope: Bangkok
+location_keywords:
+- bangkok
+- krung thep
+- กรุงเทพ
+- nonthaburi
+- นนทบุรี
+- pathum
+- ปทุม
+- samut prakan
+- สมุทรปราการ
+freshness_days: 14
+target_count: 10
+salary_floor: 30000
+allow_salary_unknown_fallback: true
+max_queries_per_source: 3
+spreadsheet_title: Nattapart_Job_Tracker_2026
+spreadsheet_id: 14ZXtceN4ba9-0BxtwcRpzgBLLuY2bF-CYogZRCZmDcI
+logs_dir: logs
+google:
+  token_path: credentials/job_tracker_token.json
+  client_secrets_path: credentials/client_secrets.json
