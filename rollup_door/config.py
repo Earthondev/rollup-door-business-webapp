@@ -16,6 +16,8 @@ class RollupConfig:
     spreadsheet_id: str
     token_path: str
     client_secrets_path: str
+    oauth_token_json: str
+    oauth_client_secrets_json: str
     google_service_account_json: str
     access_key_id: str
     access_key_secret: str
@@ -83,6 +85,11 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> RollupConfig:
         client_secrets_path=_env(
             "ROLLUP_GOOGLE_CLIENT_SECRETS_PATH",
             google.get("client_secrets_path", "credentials/client_secrets.json"),
+        ),
+        oauth_token_json=_env("GOOGLE_OAUTH_TOKEN_JSON", google.get("oauth_token_json", "")),
+        oauth_client_secrets_json=_env(
+            "GOOGLE_CLIENT_SECRETS_JSON",
+            google.get("oauth_client_secrets_json", ""),
         ),
         google_service_account_json=_env(
             "GOOGLE_SERVICE_ACCOUNT_JSON",

@@ -68,6 +68,8 @@ def _load_oauth_credentials(token_path: str, client_secrets_path: str) -> Creden
 def get_sheets_service(
     token_path: str,
     client_secrets_path: str,
+    oauth_token_json: str = "",
+    oauth_client_secrets_json: str = "",
     service_account_json: str = "",
     force_service_account: bool = False,
 ):
@@ -83,7 +85,27 @@ def get_sheets_service(
     else:
         if force_service_account:
             raise RuntimeError("missing_google_service_account")
-        creds = _load_oauth_credentials(token_path, client_secrets_path)
+        if oauth_token_json.strip():
+            try:
+                oauth_info = json.loads(oauth_token_json)
+            except json.JSONDecodeError as exc:
+                raise ValueError("invalid_google_oauth_token_json") from exc
+            creds = Credentials.from_authorized_user_info(oauth_info, SCOPES)
+            if creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+        elif oauth_client_secrets_json.strip():
+            try:
+                secrets_info = json.loads(oauth_client_secrets_json)
+            except json.JSONDecodeError as exc:
+                raise ValueError("invalid_google_client_secrets_json") from exc
+            _ensure_parent(client_secrets_path)
+            Path(client_secrets_path).write_text(
+                json.dumps(secrets_info, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            creds = _load_oauth_credentials(token_path, client_secrets_path)
+        else:
+            creds = _load_oauth_credentials(token_path, client_secrets_path)
 
     return build("sheets", "v4", credentials=creds)
 

@@ -62,6 +62,8 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
     service = get_sheets_service(
         token_path=cfg.token_path,
         client_secrets_path=cfg.client_secrets_path,
+        oauth_token_json=cfg.oauth_token_json,
+        oauth_client_secrets_json=cfg.oauth_client_secrets_json,
         service_account_json=cfg.google_service_account_json,
         force_service_account=cfg.requires_service_account(),
     )
