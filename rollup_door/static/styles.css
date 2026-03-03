@@ -103,6 +103,20 @@ summary {
   color: #d8f3ee;
 }
 
+.owner-tag {
+  position: relative;
+  z-index: 1;
+  margin: 9px 0 0;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  color: #e6fff8;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(7, 56, 59, 0.28);
+}
+
 .hero-metrics {
   position: relative;
   z-index: 1;

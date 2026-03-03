@@ -1,5 +1,6 @@
 const ACCESS_KEY_STORAGE = "rollup_access_key_id";
 const ACCESS_SECRET_STORAGE = "rollup_access_key_secret";
+const CREATOR_NAME_STORAGE = "rollup_creator_name";
 
 const CURRENCY_FMT = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -71,6 +72,14 @@ function loadAccessConfig() {
     setAccessStatus("พร้อมใช้งาน: พบ Access Key ในเครื่อง", "success");
   } else {
     setAccessStatus("ยังไม่ตั้ง Access Key", "neutral");
+  }
+}
+
+function loadCreatorName() {
+  const creatorInput = intakeForm.querySelector("input[name='creator_name']");
+  const storedName = localStorage.getItem(CREATOR_NAME_STORAGE);
+  if (storedName) {
+    creatorInput.value = storedName;
   }
 }
 
@@ -462,6 +471,7 @@ async function onIntakeSubmit(e) {
     if (payload.final_price === "") delete payload.final_price;
 
     const data = await signedFetch("POST", "/api/v1/cases", payload);
+    localStorage.setItem(CREATOR_NAME_STORAGE, raw.creator_name || "ตี๋");
     intakeResult.textContent = toPrettyJson(data);
     renderIntakeSummary(data);
     renderWarnings(intakeWarnings, data.warnings || []);
@@ -606,6 +616,9 @@ function bindEvents() {
   });
 
   intakeForm.addEventListener("submit", onIntakeSubmit);
+  intakeForm.querySelector("input[name='creator_name']").addEventListener("change", (event) => {
+    localStorage.setItem(CREATOR_NAME_STORAGE, event.target.value.trim() || "ตี๋");
+  });
   intakePreviewBtn.addEventListener("click", runIntakePreview);
 
   calculatorForm.addEventListener("submit", onCalculatorSubmit);
@@ -659,6 +672,7 @@ function init() {
   }
 
   loadAccessConfig();
+  loadCreatorName();
   bindEvents();
   registerServiceWorker();
   loadHealthStatus();
