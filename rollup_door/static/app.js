@@ -1,86 +1,42 @@
 const ACCESS_KEY_STORAGE = "rollup_access_key_id";
 const ACCESS_SECRET_STORAGE = "rollup_access_key_secret";
-const CREATOR_NAME_STORAGE = "rollup_creator_name";
-
-const CURRENCY_FMT = new Intl.NumberFormat("th-TH", {
-  style: "currency",
-  currency: "THB",
-  maximumFractionDigits: 2,
-});
-
-const NUMBER_FMT = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 });
+const OWNER_NAME_STORAGE = "rollup_owner_name";
 
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabContents = Array.from(document.querySelectorAll(".tab-content"));
-const tabShortcutButtons = Array.from(document.querySelectorAll("[data-switch-tab]"));
 
 const accessKeyInput = document.getElementById("accessKeyId");
 const accessSecretInput = document.getElementById("accessKeySecret");
 const accessStatus = document.getElementById("accessStatus");
-const healthBadge = document.getElementById("healthBadge");
 
-const heroTotalCases = document.getElementById("heroTotalCases");
-const heroAvgMargin = document.getElementById("heroAvgMargin");
-const heroLossRisk = document.getElementById("heroLossRisk");
+const dailyForm = document.getElementById("dailyForm");
+const dailySummary = document.getElementById("dailySummary");
+const dailyResult = document.getElementById("dailyResult");
 
-const intakeForm = document.getElementById("intakeForm");
-const intakePreviewBtn = document.getElementById("intakePreviewBtn");
-const intakePreviewCards = document.getElementById("intakePreviewCards");
-const intakeSummary = document.getElementById("intakeSummary");
-const intakeWarnings = document.getElementById("intakeWarnings");
-const intakeResult = document.getElementById("intakeResult");
+const taskForm = document.getElementById("taskForm");
+const taskSummary = document.getElementById("taskSummary");
+const taskResult = document.getElementById("taskResult");
 
-const calculatorForm = document.getElementById("calculatorForm");
-const calculatorSummary = document.getElementById("calculatorSummary");
-const calculatorResult = document.getElementById("calculatorResult");
-const copyToIntakeBtn = document.getElementById("copyToIntakeBtn");
+const endDayForm = document.getElementById("endDayForm");
+const endDaySummary = document.getElementById("endDaySummary");
+const endDayResult = document.getElementById("endDayResult");
 
-const knowledgeForm = document.getElementById("knowledgeForm");
-const knowledgeResults = document.getElementById("knowledgeResults");
-const knowledgeQuickTags = Array.from(document.querySelectorAll("#knowledgeQuickTags .chip-btn"));
+const searchForm = document.getElementById("searchForm");
+const historyForm = document.getElementById("historyForm");
+const searchNotesResults = document.getElementById("searchNotesResults");
+const dailyHistoryResults = document.getElementById("dailyHistoryResults");
+const taskHistoryResults = document.getElementById("taskHistoryResults");
+const searchRawResult = document.getElementById("searchRawResult");
 
-const analyticsForm = document.getElementById("analyticsForm");
-const analyticsCards = document.getElementById("analyticsCards");
-const analyticsResult = document.getElementById("analyticsResult");
-const topDriversList = document.getElementById("topDriversList");
-const refreshAnalyticsBtn = document.getElementById("refreshAnalyticsBtn");
-const analyticsQuickRanges = Array.from(document.querySelectorAll("#analyticsQuickRanges .chip-btn"));
-
-function setHealthBadge(text, tone = "neutral") {
-  healthBadge.textContent = text;
-  healthBadge.className = `badge ${tone}`;
-}
+const weeklyForm = document.getElementById("weeklyForm");
+const weeklySummary = document.getElementById("weeklySummary");
+const weeklyResult = document.getElementById("weeklyResult");
 
 function setAccessStatus(message, tone = "neutral") {
   accessStatus.textContent = message;
-  accessStatus.classList.remove("is-error", "is-success");
-
-  if (tone === "error") {
-    accessStatus.classList.add("is-error");
-  }
-
-  if (tone === "success") {
-    accessStatus.classList.add("is-success");
-  }
-}
-
-function loadAccessConfig() {
-  accessKeyInput.value = localStorage.getItem(ACCESS_KEY_STORAGE) || "";
-  accessSecretInput.value = localStorage.getItem(ACCESS_SECRET_STORAGE) || "";
-
-  if (accessKeyInput.value && accessSecretInput.value) {
-    setAccessStatus("พร้อมใช้งาน: พบ Access Key ในเครื่อง", "success");
-  } else {
-    setAccessStatus("ยังไม่ตั้ง Access Key", "neutral");
-  }
-}
-
-function loadCreatorName() {
-  const creatorInput = intakeForm.querySelector("input[name='creator_name']");
-  const storedName = localStorage.getItem(CREATOR_NAME_STORAGE);
-  if (storedName) {
-    creatorInput.value = storedName;
-  }
+  accessStatus.classList.remove("error", "success");
+  if (tone === "error") accessStatus.classList.add("error");
+  if (tone === "success") accessStatus.classList.add("success");
 }
 
 function saveAccessConfig() {
@@ -94,7 +50,15 @@ function clearAccessConfig() {
   localStorage.removeItem(ACCESS_SECRET_STORAGE);
   accessKeyInput.value = "";
   accessSecretInput.value = "";
-  setAccessStatus("ล้างค่าเรียบร้อย", "neutral");
+  setAccessStatus("ล้างค่าเรียบร้อย");
+}
+
+function loadAccessConfig() {
+  accessKeyInput.value = localStorage.getItem(ACCESS_KEY_STORAGE) || "";
+  accessSecretInput.value = localStorage.getItem(ACCESS_SECRET_STORAGE) || "";
+  if (accessKeyInput.value && accessSecretInput.value) {
+    setAccessStatus("พร้อมใช้งาน", "success");
+  }
 }
 
 function getAccessConfig() {
@@ -139,7 +103,6 @@ async function signedFetch(method, requestPath, bodyObj = null, signaturePath = 
     "X-Timestamp": timestamp,
     "X-Signature": signature,
   };
-
   if (bodyObj) {
     headers["Content-Type"] = "application/json";
   }
@@ -153,70 +116,27 @@ async function signedFetch(method, requestPath, bodyObj = null, signaturePath = 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const err = payload.error || `http_${response.status}`;
+    if (payload.fields?.length) {
+      throw new Error(`${err}: ${payload.fields.join(", ")}`);
+    }
     throw new Error(err);
   }
-
   return payload;
-}
-
-function asNumber(value) {
-  if (value === "" || value === null || value === undefined) {
-    return "";
-  }
-  const n = Number(value);
-  return Number.isFinite(n) ? n : value;
-}
-
-function asBoolean(value) {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  return String(value).trim().toLowerCase() === "true";
 }
 
 function collectForm(form) {
   const fd = new FormData(form);
-  const obj = Object.fromEntries(fd.entries());
-
-  for (const [k, v] of Object.entries(obj)) {
-    if (typeof v === "string") {
-      obj[k] = v.trim();
+  const raw = Object.fromEntries(fd.entries());
+  Object.keys(raw).forEach((key) => {
+    if (typeof raw[key] === "string") {
+      raw[key] = raw[key].trim();
     }
-  }
-
-  form.querySelectorAll("input[type='checkbox']").forEach((el) => {
-    obj[el.name] = el.checked;
   });
-
-  return obj;
+  return raw;
 }
 
-function toPrettyJson(data) {
-  return JSON.stringify(data, null, 2);
-}
-
-function formatCurrency(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) {
-    return "-";
-  }
-  return CURRENCY_FMT.format(number);
-}
-
-function formatNumber(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) {
-    return "-";
-  }
-  return NUMBER_FMT.format(number);
-}
-
-function formatPct(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) {
-    return "-";
-  }
-  return `${NUMBER_FMT.format(number)}%`;
+function toPrettyJson(payload) {
+  return JSON.stringify(payload, null, 2);
 }
 
 function switchTab(tabId) {
@@ -227,379 +147,297 @@ function switchTab(tabId) {
     event_name: "tab_switch",
     page: tabId,
   }).catch(() => {
-    // Non-blocking telemetry.
+    // Non-blocking telemetry
   });
 }
 
-function buildCalculatorPayload(raw) {
-  return {
-    material_cost: asNumber(raw.material_cost),
-    labor_cost: asNumber(raw.labor_cost),
-    travel_cost: asNumber(raw.travel_cost),
-    risk_level: raw.risk_level,
-    warranty_months: asNumber(raw.warranty_months),
-    target_margin_pct: asNumber(raw.target_margin_pct),
-  };
+function withSubmitLock(button, loadingLabel) {
+  button.disabled = true;
+  button.dataset.originalLabel = button.textContent;
+  button.textContent = loadingLabel;
 }
 
-function renderInsightCards(container, estimate) {
-  container.innerHTML = "";
-  const cards = [
-    ["ต้นทุนรวม (Direct Cost)", formatCurrency(estimate.direct_cost)],
-    ["ราคาขายแนะนำ", formatCurrency(estimate.suggested_price)],
-    ["กำไรขั้นต้น", formatCurrency(estimate.gross_profit)],
-    ["Margin", formatPct(estimate.gross_margin_pct)],
-  ];
-
-  cards.forEach(([label, value]) => {
-    const card = document.createElement("article");
-    card.className = "insight-card";
-    card.innerHTML = `<p class="metric-label">${label}</p><p class="metric-value">${value}</p>`;
-    container.appendChild(card);
-  });
+function releaseSubmitLock(button) {
+  button.disabled = false;
+  button.textContent = button.dataset.originalLabel || button.textContent;
 }
 
-function mapWarning(code) {
-  const map = {
-    margin_below_threshold: "Margin ต่ำกว่าเกณฑ์ที่ตั้งไว้",
-    invalid_dimensions: "ขนาดประตูไม่ถูกต้อง",
-    high_usage_heavy_duty_recommended: "แนะนำสเปก Heavy Duty เพราะใช้งานถี่",
-  };
-  return map[code] || code;
+function isHttpsUrl(value) {
+  return value.startsWith("https://");
 }
 
-function renderWarnings(container, warnings) {
-  container.innerHTML = "";
-  if (!warnings || !warnings.length) {
-    return;
+function validateDriveLinksCommaSeparated(value, fieldName) {
+  const links = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (!links.length) return;
+  if (links.some((link) => !isHttpsUrl(link))) {
+    throw new Error(`invalid_${fieldName}`);
   }
-
-  warnings.forEach((warning) => {
-    const chip = document.createElement("span");
-    chip.className = "warning-chip";
-    chip.textContent = mapWarning(warning);
-    container.appendChild(chip);
-  });
 }
 
-function renderIntakeSummary(data) {
-  intakeSummary.classList.remove("empty");
-  intakeSummary.innerHTML = `
-    <p class="result-summary-title">บันทึกเคสสำเร็จ: ${data.case_id || "-"}</p>
-    <div class="result-summary-grid">
-      <div>
-        <p>ราคาขายแนะนำ</p>
-        <strong>${formatCurrency(data.suggested_price)}</strong>
-      </div>
-      <div>
-        <p>Margin ที่คำนวณได้</p>
-        <strong>${formatPct(data.gross_margin_pct)}</strong>
-      </div>
-      <div>
-        <p>สถานะ</p>
-        <strong>พร้อมติดตามงาน</strong>
-      </div>
-    </div>
-  `;
+function renderSummary(element, lines) {
+  element.classList.remove("empty");
+  element.innerHTML = lines.map((line) => `<p>${line}</p>`).join("");
 }
 
-function renderCalculatorSummary(data) {
-  calculatorSummary.classList.remove("empty");
-  calculatorSummary.innerHTML = `
-    <p class="result-summary-title">ผลคำนวณราคาด่วน</p>
-    <div class="result-summary-grid">
-      <div>
-        <p>ต้นทุนรวม</p>
-        <strong>${formatCurrency(data.direct_cost)}</strong>
-      </div>
-      <div>
-        <p>ราคาขายแนะนำ</p>
-        <strong>${formatCurrency(data.suggested_price)}</strong>
-      </div>
-      <div>
-        <p>กำไรขั้นต้น</p>
-        <strong>${formatCurrency(data.gross_profit)}</strong>
-      </div>
-      <div>
-        <p>Margin</p>
-        <strong>${formatPct(data.gross_margin_pct)}</strong>
-      </div>
-    </div>
-  `;
-}
-
-function renderKnowledge(items) {
-  knowledgeResults.innerHTML = "";
+function renderCards(element, items, builder) {
+  element.innerHTML = "";
   if (!items.length) {
-    knowledgeResults.innerHTML = '<p class="hint">ไม่พบข้อมูลที่ตรงเงื่อนไข</p>';
+    element.innerHTML = '<p class="meta">ไม่พบข้อมูล</p>';
     return;
   }
 
   const fragment = document.createDocumentFragment();
-  for (const item of items) {
+  items.forEach((item) => {
     const card = document.createElement("article");
-    card.className = "knowledge-item";
-
-    const tags = String(item.tags || "-")
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean)
-      .join(" | ");
-
-    card.innerHTML = `
-      <h4>${item.topic || "หัวข้อทั่วไป"}</h4>
-      <p><strong>Q:</strong> ${item.question || "-"}</p>
-      <p><strong>A:</strong> ${item.answer || "-"}</p>
-      <p><strong>Tags:</strong> ${tags || "-"}</p>
-    `;
-
+    card.className = "output-card";
+    card.innerHTML = builder(item);
     fragment.appendChild(card);
-  }
-  knowledgeResults.appendChild(fragment);
-}
-
-function renderAnalyticsCards(summary) {
-  analyticsCards.innerHTML = "";
-  topDriversList.innerHTML = "";
-
-  const cards = [
-    ["จำนวนเคสทั้งหมด", formatNumber(summary.total_cases ?? 0), ""],
-    ["กำไรเฉลี่ย (%)", formatPct(summary.avg_margin_pct ?? 0), ""],
-    ["เคสเสี่ยงกำไรต่ำ", formatNumber(summary.loss_risk_cases ?? 0), "danger"],
-    ["ช่วงวันที่", `${summary.date_range?.from || "-"} ถึง ${summary.date_range?.to || "-"}`, ""],
-  ];
-
-  cards.forEach(([label, value, extraClass]) => {
-    const card = document.createElement("article");
-    card.className = `metric-card ${extraClass}`.trim();
-    card.innerHTML = `<p class="metric-label">${label}</p><p class="metric-value">${value}</p>`;
-    analyticsCards.appendChild(card);
   });
-
-  const drivers = summary.top_cost_drivers || [];
-  if (!drivers.length) {
-    const li = document.createElement("li");
-    li.textContent = "ยังไม่มีข้อมูล cost driver ในช่วงนี้";
-    topDriversList.appendChild(li);
-  } else {
-    drivers.forEach((driver) => {
-      const li = document.createElement("li");
-      li.textContent = `${driver.driver || "unknown"}: ${formatNumber(driver.count || 0)} เคส`;
-      topDriversList.appendChild(li);
-    });
-  }
-
-  heroTotalCases.textContent = formatNumber(summary.total_cases ?? 0);
-  heroAvgMargin.textContent = formatPct(summary.avg_margin_pct ?? 0);
-  heroLossRisk.textContent = formatNumber(summary.loss_risk_cases ?? 0);
+  element.appendChild(fragment);
 }
 
-function setQuickRange(rangeType) {
-  const fromInput = analyticsForm.querySelector("input[name='from']");
-  const toInput = analyticsForm.querySelector("input[name='to']");
-
-  const toDate = new Date();
-  const fromDate = new Date(toDate);
-
-  if (rangeType === "today") {
-    // Keep same day.
-  } else {
-    const days = Number(rangeType);
-    if (Number.isFinite(days) && days > 0) {
-      fromDate.setDate(toDate.getDate() - (days - 1));
-    }
-  }
-
-  const toISO = toDate.toISOString().slice(0, 10);
-  const fromISO = fromDate.toISOString().slice(0, 10);
-
-  fromInput.value = fromISO;
-  toInput.value = toISO;
-
-  analyticsQuickRanges.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.range === rangeType);
-  });
-}
-
-async function runIntakePreview() {
-  intakePreviewCards.innerHTML = "";
+async function submitDaily(payload, targetResultEl, targetSummaryEl, submitButton) {
+  withSubmitLock(submitButton, "กำลังบันทึก...");
+  targetResultEl.textContent = "กำลังบันทึก...";
 
   try {
-    const raw = collectForm(intakeForm);
-    const payload = buildCalculatorPayload(raw);
+    validateDriveLinksCommaSeparated(payload.photo_drive_links || "", "photo_drive_links");
+    const data = await signedFetch("POST", "/api/v1/study/daily", payload);
+    targetResultEl.textContent = toPrettyJson(data);
 
-    const required = ["material_cost", "labor_cost", "travel_cost"];
-    const missing = required.filter((field) => payload[field] === "");
-    if (missing.length) {
-      setAccessStatus("พรีวิวไม่ได้: ต้องกรอกค่าวัสดุ ค่าแรง ค่าเดินทาง", "error");
-      return;
+    renderSummary(targetSummaryEl, [
+      `บันทึกสำเร็จ: ${data.daily_id}`,
+      `วันที่: ${payload.log_date || "-"}`,
+      `พี่เลี้ยง: ${payload.mentor_name || "-"}`,
+    ]);
+
+    const dailyIdInput = taskForm.querySelector("input[name='daily_id']");
+    if (dailyIdInput) {
+      dailyIdInput.value = data.daily_id;
     }
 
-    const data = await signedFetch("POST", "/api/v1/calculator/estimate", payload);
-    renderInsightCards(intakePreviewCards, data);
-    setAccessStatus("อัปเดตพรีวิวราคาแล้ว", "success");
+    localStorage.setItem(OWNER_NAME_STORAGE, payload.owner_name || "ตี๋");
+    setAccessStatus("บันทึกข้อมูลรายวันสำเร็จ", "success");
   } catch (err) {
-    setAccessStatus(`พรีวิวไม่สำเร็จ: ${err.message}`, "error");
-    intakePreviewCards.innerHTML = "";
+    targetResultEl.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
+    setAccessStatus(`บันทึกไม่สำเร็จ: ${err.message}`, "error");
+  } finally {
+    releaseSubmitLock(submitButton);
   }
 }
 
-async function onIntakeSubmit(e) {
-  e.preventDefault();
-  intakeResult.textContent = "กำลังบันทึก...";
+async function onDailySubmit(event) {
+  event.preventDefault();
+  const submitButton = dailyForm.querySelector("button[type='submit']");
+  const raw = collectForm(dailyForm);
+
+  const payload = {
+    ...raw,
+    owner_name: raw.owner_name || "ตี๋",
+    safety_briefing_done: raw.safety_briefing_done === "true",
+  };
+
+  await submitDaily(payload, dailyResult, dailySummary, submitButton);
+}
+
+async function onTaskSubmit(event) {
+  event.preventDefault();
+  const submitButton = taskForm.querySelector("button[type='submit']");
+  const raw = collectForm(taskForm);
+
+  if (raw.photo_drive_link && !isHttpsUrl(raw.photo_drive_link)) {
+    taskResult.textContent = "เกิดข้อผิดพลาด: invalid_photo_drive_link";
+    setAccessStatus("ลิงก์รูปต้องขึ้นต้น https://", "error");
+    return;
+  }
+
+  withSubmitLock(submitButton, "กำลังบันทึก...");
+  taskResult.textContent = "กำลังบันทึก...";
 
   try {
-    const raw = collectForm(intakeForm);
     const payload = {
       ...raw,
-      width_mm: asNumber(raw.width_mm),
-      height_mm: asNumber(raw.height_mm),
-      usage_per_day: asNumber(raw.usage_per_day),
-      urgent_flag: asBoolean(raw.urgent_flag),
-      target_margin_pct: asNumber(raw.target_margin_pct),
-      warranty_months: asNumber(raw.warranty_months),
-      material_cost: asNumber(raw.material_cost),
-      labor_cost: asNumber(raw.labor_cost),
-      travel_cost: asNumber(raw.travel_cost),
-      risk_buffer_cost: asNumber(raw.risk_buffer_cost),
-      warranty_buffer_cost: asNumber(raw.warranty_buffer_cost),
-      final_price: asNumber(raw.final_price),
+      difficulty_score: raw.difficulty_score || "",
+      confidence_after_task: raw.confidence_after_task || "",
     };
 
-    if (payload.risk_buffer_cost === "") delete payload.risk_buffer_cost;
-    if (payload.warranty_buffer_cost === "") delete payload.warranty_buffer_cost;
-    if (payload.final_price === "") delete payload.final_price;
+    const data = await signedFetch("POST", "/api/v1/study/tasks", payload);
+    taskResult.textContent = toPrettyJson(data);
 
-    const data = await signedFetch("POST", "/api/v1/cases", payload);
-    localStorage.setItem(CREATOR_NAME_STORAGE, raw.creator_name || "ตี๋");
-    intakeResult.textContent = toPrettyJson(data);
-    renderIntakeSummary(data);
-    renderWarnings(intakeWarnings, data.warnings || []);
-    setAccessStatus("บันทึกเคสสำเร็จ", "success");
+    renderSummary(taskSummary, [
+      `บันทึกงานย่อยสำเร็จ: ${data.task_id}`,
+      `Daily ID: ${raw.daily_id || "-"}`,
+      `หมวดงาน: ${raw.task_category || "-"}`,
+    ]);
 
-    signedFetch("POST", "/api/v1/events", {
-      event_name: "case_saved",
-      page: "intake",
-      metadata: {
-        case_id: data.case_id,
-        margin: data.gross_margin_pct,
-      },
-    }).catch(() => {
-      // Non-blocking telemetry.
+    setAccessStatus("บันทึกงานย่อยสำเร็จ", "success");
+  } catch (err) {
+    taskResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
+    setAccessStatus(`บันทึกไม่สำเร็จ: ${err.message}`, "error");
+  } finally {
+    releaseSubmitLock(submitButton);
+  }
+}
+
+async function onEndDaySubmit(event) {
+  event.preventDefault();
+  const submitButton = endDayForm.querySelector("button[type='submit']");
+  const raw = collectForm(endDayForm);
+
+  const ownerName = localStorage.getItem(OWNER_NAME_STORAGE) || "ตี๋";
+
+  const payload = {
+    log_date: raw.log_date,
+    owner_name: ownerName,
+    mentor_name: raw.mentor_name,
+    shop_or_site_name: "",
+    district: "",
+    start_time: "",
+    end_time: "",
+    today_goal: raw.today_goal,
+    job_types_seen: "",
+    customer_types_seen: "",
+    safety_briefing_done: false,
+    tools_prepared: "",
+    questions_to_ask: "",
+    lesson_summary: raw.lesson_summary,
+    mistakes_or_risks_observed: raw.mistakes_or_risks_observed,
+    next_day_focus: raw.next_day_focus,
+    photo_drive_links: raw.photo_drive_links,
+  };
+
+  await submitDaily(payload, endDayResult, endDaySummary, submitButton);
+}
+
+async function onSearchSubmit(event) {
+  event.preventDefault();
+  const submitButton = searchForm.querySelector("button[type='submit']");
+  const raw = collectForm(searchForm);
+  withSubmitLock(submitButton, "กำลังค้นหา...");
+  searchRawResult.textContent = "กำลังค้นหา...";
+
+  try {
+    const qParams = new URLSearchParams();
+    if (raw.q) qParams.set("q", raw.q);
+
+    const searchData = await signedFetch(
+      "GET",
+      `/api/v1/study/search${qParams.toString() ? `?${qParams.toString()}` : ""}`,
+      null,
+      "/api/v1/study/search",
+    );
+
+    renderCards(searchNotesResults, searchData.items || [], (item) => {
+      if (item.source === "study_daily") {
+        return `
+          <p class="meta">${item.source} | ${item.id || "-"} | ${item.log_date || "-"}</p>
+          <p><strong>บทเรียน:</strong> ${item.lesson_summary || "-"}</p>
+          <p><strong>สิ่งที่เสี่ยง/พลาด:</strong> ${item.mistakes_or_risks_observed || "-"}</p>
+          <p><strong>คำถาม:</strong> ${item.question || "-"}</p>
+        `;
+      }
+      return `
+        <p class="meta">${item.source} | ${item.id || "-"} | Daily ${item.daily_id || "-"}</p>
+        <p><strong>อาการ:</strong> ${item.symptom_or_requirement || "-"}</p>
+        <p><strong>คำแนะนำจากอา:</strong> ${item.mentor_tip || "-"}</p>
+        <p><strong>คำถามค้าง:</strong> ${item.open_question || "-"}</p>
+      `;
     });
-  } catch (err) {
-    intakeResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
-    setAccessStatus(`เรียก API ไม่สำเร็จ: ${err.message}`, "error");
-  }
-}
 
-async function onCalculatorSubmit(e) {
-  e.preventDefault();
-  calculatorResult.textContent = "กำลังคำนวณ...";
+    if (raw.daily_id) {
+      const taskParams = new URLSearchParams({ daily_id: raw.daily_id });
+      const taskData = await signedFetch(
+        "GET",
+        `/api/v1/study/tasks?${taskParams.toString()}`,
+        null,
+        "/api/v1/study/tasks",
+      );
 
-  try {
-    const raw = collectForm(calculatorForm);
-    const payload = buildCalculatorPayload(raw);
-    const data = await signedFetch("POST", "/api/v1/calculator/estimate", payload);
-
-    calculatorResult.textContent = toPrettyJson(data);
-    renderCalculatorSummary(data);
-    setAccessStatus("คำนวณราคาเรียบร้อย", "success");
-  } catch (err) {
-    calculatorResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
-    setAccessStatus(`เรียก API ไม่สำเร็จ: ${err.message}`, "error");
-  }
-}
-
-function copyCalculatorToIntake() {
-  const raw = collectForm(calculatorForm);
-  const fields = [
-    "material_cost",
-    "labor_cost",
-    "travel_cost",
-    "risk_level",
-    "warranty_months",
-    "target_margin_pct",
-  ];
-
-  fields.forEach((name) => {
-    const source = calculatorForm.querySelector(`[name='${name}']`);
-    const target = intakeForm.querySelector(`[name='${name}']`);
-    if (source && target) {
-      target.value = source.value;
+      renderCards(taskHistoryResults, taskData.items || [], (item) => `
+        <p class="meta">${item.task_id || "-"} | ${item.task_category || "-"}</p>
+        <p><strong>อาการ:</strong> ${item.symptom_or_requirement || "-"}</p>
+        <p><strong>ขั้นตอน:</strong> ${item.step_notes || "-"}</p>
+        <p><strong>คำแนะนำ:</strong> ${item.mentor_tip || "-"}</p>
+      `);
+    } else {
+      taskHistoryResults.innerHTML = '<p class="meta">กรอก Daily ID เพื่อดูงานย่อยของวันนั้น</p>';
     }
-  });
 
-  switchTab("intake");
-  setAccessStatus("คัดลอกข้อมูลไปหน้า Intake แล้ว", "success");
-}
-
-async function onKnowledgeSubmit(e) {
-  e.preventDefault();
-  knowledgeResults.innerHTML = '<p class="hint">กำลังค้นหา...</p>';
-
-  try {
-    const raw = collectForm(knowledgeForm);
-    const params = new URLSearchParams();
-    if (raw.q) params.set("q", raw.q);
-    if (raw.tag) params.set("tag", raw.tag);
-
-    const path = `/api/v1/knowledge/search${params.toString() ? `?${params.toString()}` : ""}`;
-    const data = await signedFetch("GET", path, null, "/api/v1/knowledge/search");
-    renderKnowledge(data.items || []);
+    searchRawResult.textContent = toPrettyJson(searchData);
   } catch (err) {
-    knowledgeResults.innerHTML = `<p class="error">เกิดข้อผิดพลาด: ${err.message}</p>`;
+    searchRawResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
+    setAccessStatus(`ค้นหาไม่สำเร็จ: ${err.message}`, "error");
+  } finally {
+    releaseSubmitLock(submitButton);
   }
 }
 
-async function onAnalyticsSubmit(e) {
-  e.preventDefault();
-  analyticsResult.textContent = "กำลังโหลด...";
+async function onHistorySubmit(event) {
+  event.preventDefault();
+  const submitButton = historyForm.querySelector("button[type='submit']");
+  const raw = collectForm(historyForm);
+  withSubmitLock(submitButton, "กำลังโหลด...");
 
   try {
-    const raw = collectForm(analyticsForm);
     const params = new URLSearchParams();
     if (raw.from) params.set("from", raw.from);
     if (raw.to) params.set("to", raw.to);
 
-    const path = `/api/v1/analytics/summary${params.toString() ? `?${params.toString()}` : ""}`;
-    const data = await signedFetch("GET", path, null, "/api/v1/analytics/summary");
+    const dailyData = await signedFetch(
+      "GET",
+      `/api/v1/study/daily${params.toString() ? `?${params.toString()}` : ""}`,
+      null,
+      "/api/v1/study/daily",
+    );
 
-    renderAnalyticsCards(data);
-    analyticsResult.textContent = toPrettyJson(data);
-  } catch (err) {
-    analyticsResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
-    setAccessStatus(`โหลด analytics ไม่สำเร็จ: ${err.message}`, "error");
-  }
-}
+    renderCards(dailyHistoryResults, dailyData.items || [], (item) => `
+      <p class="meta">${item.daily_id || "-"} | ${item.log_date || "-"}</p>
+      <p><strong>พี่เลี้ยง:</strong> ${item.mentor_name || "-"}</p>
+      <p><strong>เป้าหมาย:</strong> ${item.today_goal || "-"}</p>
+      <p><strong>บทเรียน:</strong> ${item.lesson_summary || "-"}</p>
+    `);
 
-async function onRefreshAnalytics() {
-  refreshAnalyticsBtn.disabled = true;
-  refreshAnalyticsBtn.textContent = "กำลังรีเฟรช...";
-  try {
-    const data = await signedFetch("POST", "/api/v1/analytics/refresh", {});
-    analyticsResult.textContent = toPrettyJson(data);
-    setAccessStatus("รีเฟรช analytics_daily แล้ว", "success");
+    searchRawResult.textContent = toPrettyJson(dailyData);
   } catch (err) {
-    analyticsResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
-    setAccessStatus(`รีเฟรช analytics ไม่สำเร็จ: ${err.message}`, "error");
+    searchRawResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
+    setAccessStatus(`โหลดย้อนหลังไม่สำเร็จ: ${err.message}`, "error");
   } finally {
-    refreshAnalyticsBtn.disabled = false;
-    refreshAnalyticsBtn.textContent = "รีเฟรช analytics_daily";
+    releaseSubmitLock(submitButton);
   }
 }
 
-async function loadHealthStatus() {
+async function onWeeklySubmit(event) {
+  event.preventDefault();
+  const submitButton = weeklyForm.querySelector("button[type='submit']");
+  const raw = collectForm(weeklyForm);
+  withSubmitLock(submitButton, "กำลังบันทึก...");
+  weeklyResult.textContent = "กำลังบันทึก...";
+
   try {
-    const response = await fetch("/api/v1/health");
-    const payload = await response.json();
-    if (payload.ok) {
-      setHealthBadge("ระบบพร้อมใช้งาน", "success");
-      return;
-    }
-    setHealthBadge(`ต้องตรวจ config: ${(payload.errors || []).join(", ")}`, "error");
-  } catch (_err) {
-    setHealthBadge("ตรวจสุขภาพระบบไม่สำเร็จ", "error");
+    const payload = {
+      ...raw,
+      week_no: Number(raw.week_no),
+    };
+
+    const data = await signedFetch("POST", "/api/v1/study/weekly-review", payload);
+    weeklyResult.textContent = toPrettyJson(data);
+
+    renderSummary(weeklySummary, [
+      `บันทึกสรุปรายสัปดาห์สำเร็จ: ${data.review_id}`,
+      `ช่วงวันที่: ${raw.from_date || "-"} ถึง ${raw.to_date || "-"}`,
+      `สัปดาห์ที่: ${raw.week_no || "-"}`,
+    ]);
+
+    setAccessStatus("บันทึกสรุปรายสัปดาห์สำเร็จ", "success");
+  } catch (err) {
+    weeklyResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
+    setAccessStatus(`บันทึกไม่สำเร็จ: ${err.message}`, "error");
+  } finally {
+    releaseSubmitLock(submitButton);
   }
 }
 
@@ -611,59 +449,29 @@ function bindEvents() {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
 
-  tabShortcutButtons.forEach((btn) => {
-    btn.addEventListener("click", () => switchTab(btn.dataset.switchTab));
-  });
-
-  intakeForm.addEventListener("submit", onIntakeSubmit);
-  intakeForm.querySelector("input[name='creator_name']").addEventListener("change", (event) => {
-    localStorage.setItem(CREATOR_NAME_STORAGE, event.target.value.trim() || "ตี๋");
-  });
-  intakePreviewBtn.addEventListener("click", runIntakePreview);
-
-  calculatorForm.addEventListener("submit", onCalculatorSubmit);
-  copyToIntakeBtn.addEventListener("click", copyCalculatorToIntake);
-
-  knowledgeForm.addEventListener("submit", onKnowledgeSubmit);
-  knowledgeQuickTags.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const tagInput = knowledgeForm.querySelector("input[name='tag']");
-      tagInput.value = btn.dataset.tag || "";
-      onKnowledgeSubmit(new Event("submit", { cancelable: true }));
-    });
-  });
-
-  analyticsForm.addEventListener("submit", onAnalyticsSubmit);
-  refreshAnalyticsBtn.addEventListener("click", onRefreshAnalytics);
-
-  analyticsQuickRanges.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      setQuickRange(btn.dataset.range || "30");
-      analyticsForm.requestSubmit();
-    });
-  });
+  dailyForm.addEventListener("submit", onDailySubmit);
+  taskForm.addEventListener("submit", onTaskSubmit);
+  endDayForm.addEventListener("submit", onEndDaySubmit);
+  searchForm.addEventListener("submit", onSearchSubmit);
+  historyForm.addEventListener("submit", onHistorySubmit);
+  weeklyForm.addEventListener("submit", onWeeklySubmit);
 }
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(() => {
-      // Keep app functional even when SW registration fails.
+      // Keep app usable when SW registration fails.
     });
   }
 }
 
-async function bootstrapAnalyticsDefault() {
-  setQuickRange("30");
-  const hasAccess = Boolean(localStorage.getItem(ACCESS_KEY_STORAGE) && localStorage.getItem(ACCESS_SECRET_STORAGE));
-  if (!hasAccess) {
-    return;
-  }
+function setDefaultDates() {
+  const today = new Date().toISOString().slice(0, 10);
+  dailyForm.querySelector("input[name='log_date']").value = today;
+  endDayForm.querySelector("input[name='log_date']").value = today;
 
-  try {
-    await onAnalyticsSubmit(new Event("submit", { cancelable: true }));
-  } catch (_err) {
-    // Already handled in submit.
-  }
+  const ownerInput = dailyForm.querySelector("input[name='owner_name']");
+  ownerInput.value = localStorage.getItem(OWNER_NAME_STORAGE) || "ตี๋";
 }
 
 function init() {
@@ -672,11 +480,9 @@ function init() {
   }
 
   loadAccessConfig();
-  loadCreatorName();
+  setDefaultDates();
   bindEvents();
   registerServiceWorker();
-  loadHealthStatus();
-  bootstrapAnalyticsDefault();
 }
 
 init();

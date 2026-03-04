@@ -14,11 +14,22 @@ from .constants import DEFAULT_STATUS
 from .security import InMemoryRateLimiter, SecurityConfig, validate_request
 from .sheets import (
     append_case_and_log,
+    append_study_daily,
+    append_study_event,
+    append_study_task,
+    append_study_weekly_review,
+    build_weekly_review_id,
     get_sheets_service,
+    list_study_daily_rows,
+    list_study_tasks_by_daily_id,
     next_case_id,
+    next_daily_id,
+    next_study_event_id,
+    next_task_id,
     read_table_rows,
     refresh_analytics_daily,
     search_knowledge,
+    search_study_notes,
     summarize_cases,
 )
 
@@ -53,6 +64,34 @@ def _to_bool(value: Any) -> bool:
 
 
 
+def _to_date(value: Any, field_name: str) -> date:
+    try:
+        return date.fromisoformat(str(value).strip())
+    except (TypeError, ValueError):
+        raise ValueError(f"invalid_{field_name}") from None
+
+
+def _is_https_url(value: str) -> bool:
+    return value.startswith("https://")
+
+
+def _validate_https_links(value: str, field_name: str) -> None:
+    links = [item.strip() for item in value.split(",") if item.strip()]
+    if not links:
+        return
+    if any(not _is_https_url(link) for link in links):
+        raise ValueError(f"invalid_{field_name}")
+
+
+def _optional_int_range(value: Any, field_name: str, minimum: int, maximum: int) -> int | None:
+    if value in (None, ""):
+        return None
+    parsed = _to_int(value, field_name, minimum=minimum)
+    if parsed > maximum:
+        raise ValueError(f"invalid_{field_name}")
+    return parsed
+
+
 def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
     cfg = load_config(config_path)
     startup_errors = cfg.validate_runtime_requirements()
@@ -62,8 +101,6 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
     service = get_sheets_service(
         token_path=cfg.token_path,
         client_secrets_path=cfg.client_secrets_path,
-        oauth_token_json=cfg.oauth_token_json,
-        oauth_client_secrets_json=cfg.oauth_client_secrets_json,
         service_account_json=cfg.google_service_account_json,
         force_service_account=cfg.requires_service_account(),
     )
@@ -316,20 +353,203 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
             }
         )
 
+    @app.post("/api/v1/study/daily")
+    def api_study_daily():
+        payload = request.get_json(silent=True) or {}
+        required = ["log_date", "owner_name", "mentor_name", "today_goal", "lesson_summary"]
+        missing = [field for field in required if str(payload.get(field, "")).strip() == ""]
+        if missing:
+            return jsonify({"ok": False, "error": "missing_required_fields", "fields": missing}), 400
+
+        try:
+            log_date = _to_date(payload.get("log_date"), "log_date")
+            _validate_https_links(str(payload.get("photo_drive_links", "")).strip(), "photo_drive_links")
+        except ValueError as err:
+            return jsonify({"ok": False, "error": str(err)}), 400
+
+        now = datetime.now()
+        with case_lock:
+            daily_id = next_daily_id(service, cfg.spreadsheet_id, log_date)
+            row = {
+                "daily_id": daily_id,
+                "log_date": log_date.isoformat(),
+                "owner_name": str(payload.get("owner_name", "ตี๋")).strip() or "ตี๋",
+                "mentor_name": str(payload.get("mentor_name", "")).strip(),
+                "shop_or_site_name": str(payload.get("shop_or_site_name", "")).strip(),
+                "district": str(payload.get("district", "")).strip(),
+                "start_time": str(payload.get("start_time", "")).strip(),
+                "end_time": str(payload.get("end_time", "")).strip(),
+                "today_goal": str(payload.get("today_goal", "")).strip(),
+                "job_types_seen": str(payload.get("job_types_seen", "")).strip(),
+                "customer_types_seen": str(payload.get("customer_types_seen", "")).strip(),
+                "safety_briefing_done": "TRUE" if _to_bool(payload.get("safety_briefing_done", False)) else "FALSE",
+                "tools_prepared": str(payload.get("tools_prepared", "")).strip(),
+                "questions_to_ask": str(payload.get("questions_to_ask", "")).strip(),
+                "lesson_summary": str(payload.get("lesson_summary", "")).strip(),
+                "mistakes_or_risks_observed": str(payload.get("mistakes_or_risks_observed", "")).strip(),
+                "next_day_focus": str(payload.get("next_day_focus", "")).strip(),
+                "photo_drive_links": str(payload.get("photo_drive_links", "")).strip(),
+                "created_at": now.isoformat(timespec="seconds"),
+            }
+            append_study_daily(service, cfg.spreadsheet_id, row)
+
+        return jsonify({"ok": True, "daily_id": daily_id})
+
+    @app.post("/api/v1/study/tasks")
+    def api_study_tasks():
+        payload = request.get_json(silent=True) or {}
+        required = ["daily_id", "task_category", "symptom_or_requirement", "step_notes", "mentor_tip"]
+        missing = [field for field in required if str(payload.get(field, "")).strip() == ""]
+        if missing:
+            return jsonify({"ok": False, "error": "missing_required_fields", "fields": missing}), 400
+
+        daily_id = str(payload.get("daily_id", "")).strip()
+        daily_rows = read_table_rows(service, cfg.spreadsheet_id, "study_daily")
+        if not any(str(row.get("daily_id", "")).strip() == daily_id for row in daily_rows):
+            return jsonify({"ok": False, "error": "daily_id_not_found"}), 400
+
+        try:
+            difficulty_score = _optional_int_range(payload.get("difficulty_score"), "difficulty_score", 1, 5)
+            confidence_score = _optional_int_range(
+                payload.get("confidence_after_task"),
+                "confidence_after_task",
+                1,
+                5,
+            )
+            photo_drive_link = str(payload.get("photo_drive_link", "")).strip()
+            if photo_drive_link and not _is_https_url(photo_drive_link):
+                raise ValueError("invalid_photo_drive_link")
+        except ValueError as err:
+            return jsonify({"ok": False, "error": str(err)}), 400
+
+        now = datetime.now()
+        with case_lock:
+            task_id = next_task_id(service, cfg.spreadsheet_id, now)
+            row = {
+                "task_id": task_id,
+                "daily_id": daily_id,
+                "task_time": str(payload.get("task_time", "")).strip(),
+                "task_category": str(payload.get("task_category", "")).strip(),
+                "job_mode": str(payload.get("job_mode", "")).strip(),
+                "site_type": str(payload.get("site_type", "")).strip(),
+                "symptom_or_requirement": str(payload.get("symptom_or_requirement", "")).strip(),
+                "suspected_cause": str(payload.get("suspected_cause", "")).strip(),
+                "materials_used": str(payload.get("materials_used", "")).strip(),
+                "tools_used": str(payload.get("tools_used", "")).strip(),
+                "step_notes": str(payload.get("step_notes", "")).strip(),
+                "quality_check_points": str(payload.get("quality_check_points", "")).strip(),
+                "safety_risks": str(payload.get("safety_risks", "")).strip(),
+                "mentor_tip": str(payload.get("mentor_tip", "")).strip(),
+                "my_role": str(payload.get("my_role", "")).strip(),
+                "difficulty_score": difficulty_score if difficulty_score is not None else "",
+                "confidence_after_task": confidence_score if confidence_score is not None else "",
+                "open_question": str(payload.get("open_question", "")).strip(),
+                "photo_drive_link": photo_drive_link,
+                "created_at": now.isoformat(timespec="seconds"),
+            }
+            append_study_task(service, cfg.spreadsheet_id, row)
+
+        return jsonify({"ok": True, "task_id": task_id})
+
+    @app.post("/api/v1/study/weekly-review")
+    def api_study_weekly_review():
+        payload = request.get_json(silent=True) or {}
+        required = ["week_no", "from_date", "to_date", "top_lessons", "next_week_plan"]
+        missing = [field for field in required if str(payload.get(field, "")).strip() == ""]
+        if missing:
+            return jsonify({"ok": False, "error": "missing_required_fields", "fields": missing}), 400
+
+        try:
+            week_no = _to_int(payload.get("week_no"), "week_no", minimum=1)
+            if week_no > 53:
+                raise ValueError("invalid_week_no")
+            from_date = _to_date(payload.get("from_date"), "from_date")
+            to_date = _to_date(payload.get("to_date"), "to_date")
+        except ValueError as err:
+            return jsonify({"ok": False, "error": str(err)}), 400
+
+        if to_date < from_date:
+            return jsonify({"ok": False, "error": "invalid_date_range"}), 400
+
+        review_id = build_weekly_review_id(from_date=from_date, week_no=week_no)
+        row = {
+            "review_id": review_id,
+            "week_no": week_no,
+            "from_date": from_date.isoformat(),
+            "to_date": to_date.isoformat(),
+            "top_lessons": str(payload.get("top_lessons", "")).strip(),
+            "repeated_problems": str(payload.get("repeated_problems", "")).strip(),
+            "skills_improved": str(payload.get("skills_improved", "")).strip(),
+            "skills_need_practice": str(payload.get("skills_need_practice", "")).strip(),
+            "next_week_plan": str(payload.get("next_week_plan", "")).strip(),
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        append_study_weekly_review(service, cfg.spreadsheet_id, row)
+        return jsonify({"ok": True, "review_id": review_id})
+
+    @app.get("/api/v1/study/daily")
+    def api_get_study_daily():
+        from_raw = request.args.get("from", "")
+        to_raw = request.args.get("to", "")
+        try:
+            from_date = _to_date(from_raw, "from") if from_raw else None
+            to_date = _to_date(to_raw, "to") if to_raw else None
+        except ValueError as err:
+            return jsonify({"ok": False, "error": str(err)}), 400
+
+        items = list_study_daily_rows(
+            service=service,
+            spreadsheet_id=cfg.spreadsheet_id,
+            from_date=from_date,
+            to_date=to_date,
+        )
+        return jsonify({"ok": True, "items": items, "count": len(items)})
+
+    @app.get("/api/v1/study/tasks")
+    def api_get_study_tasks():
+        daily_id = request.args.get("daily_id", "")
+        items = list_study_tasks_by_daily_id(service, cfg.spreadsheet_id, daily_id=daily_id)
+        return jsonify({"ok": True, "items": items, "count": len(items)})
+
+    @app.get("/api/v1/study/search")
+    def api_study_search():
+        q = request.args.get("q", "")
+        items = search_study_notes(service, cfg.spreadsheet_id, query=q)
+        return jsonify({"ok": True, "items": items, "count": len(items)})
+
     @app.post("/api/v1/events")
     def api_events():
         payload = request.get_json(silent=True) or {}
+        now = datetime.now()
         event_line = {
-            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "created_at": now.isoformat(timespec="seconds"),
             "event_name": payload.get("event_name", "unknown"),
             "page": payload.get("page", ""),
             "metadata": payload.get("metadata", {}),
             "ip": request.headers.get("X-Forwarded-For", request.remote_addr),
         }
 
-        log_file = logs_dir / f"rollup_webapp_events_{datetime.now().date().isoformat()}.log"
+        log_file = logs_dir / f"rollup_webapp_events_{now.date().isoformat()}.log"
         with log_file.open("a", encoding="utf-8") as f:
             f.write(json.dumps(event_line, ensure_ascii=False) + "\n")
+
+        try:
+            with case_lock:
+                event_id = next_study_event_id(service, cfg.spreadsheet_id, now)
+                append_study_event(
+                    service,
+                    cfg.spreadsheet_id,
+                    {
+                        "event_id": event_id,
+                        "event_name": str(payload.get("event_name", "unknown")).strip(),
+                        "page": str(payload.get("page", "")).strip(),
+                        "metadata_json": payload.get("metadata", {}),
+                        "created_at": now.isoformat(timespec="seconds"),
+                    },
+                )
+        except Exception:
+            # Logging telemetry must not block core actions.
+            pass
 
         return jsonify({"ok": True})
 

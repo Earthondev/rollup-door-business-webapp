@@ -20,6 +20,7 @@ from .constants import (
     DEFAULT_KNOWLEDGE,
     DEFAULT_LOOKUPS,
     DEFAULT_PRICING_REFERENCE,
+    DEFAULT_STUDY_LOOKUPS,
     TAB_HEADERS,
 )
 
@@ -182,6 +183,18 @@ def _sheet_title_to_id(metadata: dict[str, Any]) -> dict[str, int]:
 
 
 
+def _column_letter(index: int) -> str:
+    if index <= 0:
+        raise ValueError("invalid_column_index")
+
+    letters = []
+    n = index
+    while n > 0:
+        n, remainder = divmod(n - 1, 26)
+        letters.append(chr(ord("A") + remainder))
+    return "".join(reversed(letters))
+
+
 def create_rollup_spreadsheet(service, title: str) -> tuple[str, str]:
     body = {
         "properties": {"title": title},
@@ -283,6 +296,7 @@ def _seed_defaults_if_empty(service, spreadsheet_id: str) -> None:
         "lookups": DEFAULT_LOOKUPS,
         "pricing_reference": DEFAULT_PRICING_REFERENCE,
         "knowledge_qna": DEFAULT_KNOWLEDGE,
+        "study_lookups": DEFAULT_STUDY_LOOKUPS,
     }
     for tab, rows in seeded.items():
         current = read_table_rows(service, spreadsheet_id, tab)
@@ -302,7 +316,7 @@ def _seed_defaults_if_empty(service, spreadsheet_id: str) -> None:
 
 def read_table_rows(service, spreadsheet_id: str, tab: str) -> list[dict[str, Any]]:
     headers = TAB_HEADERS[tab]
-    end_column = chr(ord("A") + len(headers) - 1)
+    end_column = _column_letter(len(headers))
     resp = _execute_with_retry(
         lambda: service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
@@ -374,6 +388,135 @@ def append_case_and_log(
     }
     append_row(service, spreadsheet_id, "calculator_logs", calc_log)
 
+
+def next_daily_id(service, spreadsheet_id: str, log_date: date) -> str:
+    day_prefix = f"DAY-{log_date.strftime('%Y%m%d')}-"
+    rows = read_table_rows(service, spreadsheet_id, "study_daily")
+    max_counter = 0
+    for row in rows:
+        max_counter = max(max_counter, _extract_case_counter(str(row.get("daily_id", "")), day_prefix))
+    return f"{day_prefix}{max_counter + 1:03d}"
+
+
+def next_task_id(service, spreadsheet_id: str, created_at: datetime) -> str:
+    month_prefix = f"TASK-{created_at.strftime('%Y%m')}-"
+    rows = read_table_rows(service, spreadsheet_id, "study_tasks")
+    max_counter = 0
+    for row in rows:
+        max_counter = max(max_counter, _extract_case_counter(str(row.get("task_id", "")), month_prefix))
+    return f"{month_prefix}{max_counter + 1:04d}"
+
+
+def build_weekly_review_id(from_date: date, week_no: int) -> str:
+    return f"WEEK-{from_date.year}-{week_no:02d}"
+
+
+def next_study_event_id(service, spreadsheet_id: str, created_at: datetime) -> str:
+    month_prefix = f"EVT-{created_at.strftime('%Y%m')}-"
+    rows = read_table_rows(service, spreadsheet_id, "study_events")
+    max_counter = 0
+    for row in rows:
+        max_counter = max(max_counter, _extract_case_counter(str(row.get("event_id", "")), month_prefix))
+    return f"{month_prefix}{max_counter + 1:04d}"
+
+
+def append_study_daily(service, spreadsheet_id: str, daily_row: dict[str, Any]) -> None:
+    append_row(service, spreadsheet_id, "study_daily", daily_row)
+
+
+def append_study_task(service, spreadsheet_id: str, task_row: dict[str, Any]) -> None:
+    append_row(service, spreadsheet_id, "study_tasks", task_row)
+
+
+def append_study_weekly_review(service, spreadsheet_id: str, review_row: dict[str, Any]) -> None:
+    append_row(service, spreadsheet_id, "study_weekly_review", review_row)
+
+
+def append_study_event(service, spreadsheet_id: str, event_row: dict[str, Any]) -> None:
+    append_row(service, spreadsheet_id, "study_events", event_row)
+
+
+def list_study_daily_rows(
+    service,
+    spreadsheet_id: str,
+    from_date: date | None = None,
+    to_date: date | None = None,
+) -> list[dict[str, Any]]:
+    rows = read_table_rows(service, spreadsheet_id, "study_daily")
+    filtered: list[dict[str, Any]] = []
+
+    for row in rows:
+        row_date = _safe_iso_date(str(row.get("log_date", ""))) or _safe_iso_date(str(row.get("created_at", "")))
+        if from_date and (row_date is None or row_date < from_date):
+            continue
+        if to_date and (row_date is None or row_date > to_date):
+            continue
+        filtered.append(row)
+
+    filtered.sort(key=lambda row: str(row.get("log_date", "")), reverse=True)
+    return filtered
+
+
+def list_study_tasks_by_daily_id(service, spreadsheet_id: str, daily_id: str = "") -> list[dict[str, Any]]:
+    rows = read_table_rows(service, spreadsheet_id, "study_tasks")
+    daily_id_clean = daily_id.strip()
+    if not daily_id_clean:
+        return rows
+    return [row for row in rows if str(row.get("daily_id", "")).strip() == daily_id_clean]
+
+
+def search_study_notes(service, spreadsheet_id: str, query: str) -> list[dict[str, Any]]:
+    q = query.strip().lower()
+    if not q:
+        return []
+
+    daily_rows = read_table_rows(service, spreadsheet_id, "study_daily")
+    task_rows = read_table_rows(service, spreadsheet_id, "study_tasks")
+    results: list[dict[str, Any]] = []
+
+    for row in daily_rows:
+        haystack = " ".join(
+            [
+                str(row.get("lesson_summary", "")),
+                str(row.get("mistakes_or_risks_observed", "")),
+                str(row.get("questions_to_ask", "")),
+                str(row.get("today_goal", "")),
+            ]
+        ).lower()
+        if q in haystack:
+            results.append(
+                {
+                    "source": "study_daily",
+                    "id": row.get("daily_id", ""),
+                    "log_date": row.get("log_date", ""),
+                    "lesson_summary": row.get("lesson_summary", ""),
+                    "mistakes_or_risks_observed": row.get("mistakes_or_risks_observed", ""),
+                    "question": row.get("questions_to_ask", ""),
+                }
+            )
+
+    for row in task_rows:
+        haystack = " ".join(
+            [
+                str(row.get("symptom_or_requirement", "")),
+                str(row.get("mentor_tip", "")),
+                str(row.get("open_question", "")),
+                str(row.get("step_notes", "")),
+            ]
+        ).lower()
+        if q in haystack:
+            results.append(
+                {
+                    "source": "study_tasks",
+                    "id": row.get("task_id", ""),
+                    "daily_id": row.get("daily_id", ""),
+                    "symptom_or_requirement": row.get("symptom_or_requirement", ""),
+                    "mentor_tip": row.get("mentor_tip", ""),
+                    "open_question": row.get("open_question", ""),
+                }
+            )
+
+    return results
 
 
 def search_knowledge(service, spreadsheet_id: str, query: str = "", tag: str = "") -> list[dict[str, Any]]:
@@ -538,14 +681,25 @@ def export_tables_to_csv(service, spreadsheet_id: str, output_dir: str | Path) -
 
 __all__ = [
     "append_case_and_log",
+    "append_study_daily",
+    "append_study_event",
+    "append_study_task",
+    "append_study_weekly_review",
     "append_row",
+    "build_weekly_review_id",
     "create_rollup_spreadsheet",
     "export_tables_to_csv",
     "get_sheets_service",
     "initialize_rollup_sheet",
+    "list_study_daily_rows",
+    "list_study_tasks_by_daily_id",
     "next_case_id",
+    "next_daily_id",
+    "next_study_event_id",
+    "next_task_id",
     "read_table_rows",
     "refresh_analytics_daily",
     "search_knowledge",
+    "search_study_notes",
     "summarize_cases",
 ]

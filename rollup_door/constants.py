@@ -70,6 +70,74 @@ LOOKUPS_HEADERS = [
     "sort_order",
 ]
 
+STUDY_DAILY_HEADERS = [
+    "daily_id",
+    "log_date",
+    "owner_name",
+    "mentor_name",
+    "shop_or_site_name",
+    "district",
+    "start_time",
+    "end_time",
+    "today_goal",
+    "job_types_seen",
+    "customer_types_seen",
+    "safety_briefing_done",
+    "tools_prepared",
+    "questions_to_ask",
+    "lesson_summary",
+    "mistakes_or_risks_observed",
+    "next_day_focus",
+    "photo_drive_links",
+    "created_at",
+]
+
+STUDY_TASK_HEADERS = [
+    "task_id",
+    "daily_id",
+    "task_time",
+    "task_category",
+    "job_mode",
+    "site_type",
+    "symptom_or_requirement",
+    "suspected_cause",
+    "materials_used",
+    "tools_used",
+    "step_notes",
+    "quality_check_points",
+    "safety_risks",
+    "mentor_tip",
+    "my_role",
+    "difficulty_score",
+    "confidence_after_task",
+    "open_question",
+    "photo_drive_link",
+    "created_at",
+]
+
+STUDY_WEEKLY_REVIEW_HEADERS = [
+    "review_id",
+    "week_no",
+    "from_date",
+    "to_date",
+    "top_lessons",
+    "repeated_problems",
+    "skills_improved",
+    "skills_need_practice",
+    "next_week_plan",
+    "created_at",
+]
+
+STUDY_LOOKUPS_HEADERS = LOOKUPS_HEADERS.copy()
+
+STUDY_EVENTS_HEADERS = [
+    "event_id",
+    "event_name",
+    "page",
+    "metadata_json",
+    "created_at",
+]
+
 TAB_HEADERS = {
     "cases_raw": CASES_HEADERS,
     "pricing_reference": PRICING_REFERENCE_HEADERS,
@@ -77,6 +145,11 @@ TAB_HEADERS = {
     "calculator_logs": CALCULATOR_LOG_HEADERS,
     "analytics_daily": ANALYTICS_DAILY_HEADERS,
     "lookups": LOOKUPS_HEADERS,
+    "study_daily": STUDY_DAILY_HEADERS,
+    "study_tasks": STUDY_TASK_HEADERS,
+    "study_weekly_review": STUDY_WEEKLY_REVIEW_HEADERS,
+    "study_lookups": STUDY_LOOKUPS_HEADERS,
+    "study_events": STUDY_EVENTS_HEADERS,
 }
 
 DEFAULT_LOOKUPS = [
@@ -127,3 +200,20 @@ DEFAULT_KNOWLEDGE = [
 ]
 
 DEFAULT_STATUS = "New Lead"
+
+DEFAULT_STUDY_LOOKUPS = [
+    ["task_category", "สำรวจ", "TRUE", "1"],
+    ["task_category", "ติดตั้ง", "TRUE", "2"],
+    ["task_category", "ซ่อม", "TRUE", "3"],
+    ["task_category", "ทดสอบ", "TRUE", "4"],
+    ["task_category", "ส่งมอบ", "TRUE", "5"],
+    ["job_mode", "ติดตั้งใหม่", "TRUE", "1"],
+    ["job_mode", "ซ่อม", "TRUE", "2"],
+    ["job_mode", "บำรุง", "TRUE", "3"],
+    ["site_type", "อาคารพาณิชย์", "TRUE", "1"],
+    ["site_type", "โกดัง", "TRUE", "2"],
+    ["site_type", "โรงงาน", "TRUE", "3"],
+    ["my_role", "ดูงาน", "TRUE", "1"],
+    ["my_role", "ช่วยจับงาน", "TRUE", "2"],
+    ["my_role", "ลงมือเอง", "TRUE", "3"],
+]

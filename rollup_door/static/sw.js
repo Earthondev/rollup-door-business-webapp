@@ -1,4 +1,4 @@
-const CACHE_NAME = "rollup-ops-v2";
+const CACHE_NAME = "rollup-ops-v3";
 const STATIC_ASSETS = ["/", "/static/styles.css", "/static/app.js", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

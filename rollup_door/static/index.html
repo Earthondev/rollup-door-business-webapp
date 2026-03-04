@@ -3,62 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rollup Door Business Cockpit</title>
+    <title>สมุดจดเรียนงานประตูเหล็กม้วน</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <div class="bg-ambient"></div>
+    <div class="bg-layer"></div>
     <main class="app-shell">
-      <header class="hero-card">
-        <div class="hero-top">
-          <p class="eyebrow">Rollup Door Business Cockpit</p>
-          <span id="healthBadge" class="badge neutral">กำลังตรวจระบบ...</span>
-        </div>
-        <h1>เว็บจัดการเคสประตูเหล็กม้วน สำหรับเจ้าของและทีมช่าง</h1>
-        <p class="subtitle">กรอกข้อมูลครั้งเดียว แล้วได้ราคาขายแนะนำ, กำไรขั้นต้น, และข้อมูลวิเคราะห์เพื่อขยายธุรกิจ</p>
-        <p class="owner-tag">เจ้าของร้าน: ตี๋ (tee)</p>
-
-        <div class="hero-metrics">
-          <article class="hero-metric">
-            <p>เคสในช่วงที่ดู</p>
-            <strong id="heroTotalCases">-</strong>
-          </article>
-          <article class="hero-metric">
-            <p>กำไรเฉลี่ย</p>
-            <strong id="heroAvgMargin">-</strong>
-          </article>
-          <article class="hero-metric">
-            <p>เคสเสี่ยงต่ำกว่าเป้า</p>
-            <strong id="heroLossRisk">-</strong>
-          </article>
-        </div>
-
-        <div class="quick-actions">
-          <button class="quick-btn" type="button" data-switch-tab="intake">+ เพิ่มเคสใหม่</button>
-          <button class="quick-btn" type="button" data-switch-tab="calculator">คำนวณราคาด่วน</button>
-          <button class="quick-btn" type="button" data-switch-tab="analytics">ดูสรุปกำไร</button>
-        </div>
+      <header class="hero">
+        <p class="eyebrow">Study Log V1</p>
+        <h1>สมุดจดเรียนงาน 1 เดือน</h1>
+        <p class="subtitle">เว็บสำหรับจดสิ่งที่เรียนรู้จากหน้างานจริง แบบรายวัน + งานย่อย เพื่อใช้ต่อยอดธุรกิจในอนาคต</p>
+        <p class="owner-pill">เจ้าของร้าน: ตี๋ (tee)</p>
       </header>
 
       <section class="panel settings-panel">
         <details>
-          <summary>ตั้งค่า Access Key (ครั้งแรก)</summary>
-          <p class="hint">กรอกครั้งเดียวแล้วระบบจะจำไว้ในเครื่องนี้ สำหรับการส่งคำขอแบบ signed</p>
-          <div class="form-grid compact-grid">
+          <summary>ตั้งค่า Access Key (กรอกครั้งแรก)</summary>
+          <p class="hint">ระบบจะบันทึกค่าไว้ในเครื่องนี้ เพื่อส่งคำขอแบบ signed</p>
+          <div class="form-grid two-cols">
             <label>
               Access Key ID
-              <input id="accessKeyId" type="text" placeholder="เช่น 663d2758d1e8806f" />
+              <input id="accessKeyId" type="text" placeholder="change-me" />
             </label>
             <label>
               Access Key Secret
-              <input id="accessKeySecret" type="password" placeholder="เช่น xxxxx" />
+              <input id="accessKeySecret" type="password" placeholder="change-me-secret" />
             </label>
           </div>
           <div class="inline-actions">
@@ -69,206 +45,225 @@
         </details>
       </section>
 
-      <nav class="tab-nav" role="tablist" aria-label="Sections">
-        <button class="tab-btn active" data-tab="intake" role="tab">Quick Intake</button>
-        <button class="tab-btn" data-tab="calculator" role="tab">Calculator</button>
-        <button class="tab-btn" data-tab="knowledge" role="tab">Knowledge</button>
-        <button class="tab-btn" data-tab="analytics" role="tab">Analytics</button>
+      <nav class="tab-nav" role="tablist" aria-label="Study Pages">
+        <button class="tab-btn active" data-tab="daily" role="tab">เช็กอินรายวัน</button>
+        <button class="tab-btn" data-tab="task" role="tab">เพิ่มงานย่อย</button>
+        <button class="tab-btn" data-tab="endday" role="tab">สรุปปลายวัน</button>
+        <button class="tab-btn" data-tab="search" role="tab">ค้นหา/ย้อนหลัง</button>
+        <button class="tab-btn" data-tab="weekly" role="tab">สรุปรายสัปดาห์</button>
       </nav>
 
-      <section class="tab-content active" id="tab-intake">
+      <section class="tab-content active" id="tab-daily">
         <div class="panel">
           <div class="section-head">
-            <h2>บันทึกเคสใหม่ (มือถือใช้ง่าย)</h2>
-            <p>กรอกตามขั้นตอน 1 → 2 → 3 แล้วกดบันทึก</p>
+            <h2>เช็กอินรายวัน</h2>
+            <p>บันทึกข้อมูลประจำวันสำหรับการเรียนงาน</p>
           </div>
 
-          <form id="intakeForm" class="stack-form">
-            <section class="form-section">
-              <h3>1) ข้อมูลลูกค้าและหน้างาน</h3>
-              <div class="form-grid">
-                <label>ผู้กรอก<input name="creator_name" value="ตี๋" required /></label>
-                <label>อำเภอ<input name="district" required /></label>
-                <label>
-                  ประเภทงาน
-                  <select name="job_type" required>
-                    <option value="ติดตั้งใหม่">ติดตั้งใหม่</option>
-                    <option value="ซ่อม">ซ่อม</option>
-                  </select>
-                </label>
-                <label>
-                  ประเภทสถานที่
-                  <select name="site_type" required>
-                    <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
-                    <option value="โกดัง">โกดัง</option>
-                    <option value="โรงงาน">โรงงาน</option>
-                  </select>
-                </label>
-                <label>
-                  งานด่วน
-                  <select name="urgent_flag">
-                    <option value="false" selected>ไม่ด่วน</option>
-                    <option value="true">ด่วน</option>
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            <section class="form-section">
-              <h3>2) สเปกประตู</h3>
-              <div class="form-grid">
-                <label>ความกว้าง (มม.)<input name="width_mm" type="number" min="0" required /></label>
-                <label>ความสูง (มม.)<input name="height_mm" type="number" min="0" required /></label>
-                <label>
-                  มอเตอร์
-                  <select name="motor_type" required>
-                    <option value="Manual">Manual</option>
-                    <option value="Chain Hoist">Chain Hoist</option>
-                    <option value="Electric">Electric</option>
-                  </select>
-                </label>
-                <label>การใช้งาน/วัน (ครั้ง)<input name="usage_per_day" type="number" min="0" required /></label>
-                <label>
-                  Risk Level
-                  <select name="risk_level">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </label>
-                <label>Warranty (เดือน)<input name="warranty_months" type="number" min="0" value="12" /></label>
-                <label>Target Margin (%)<input name="target_margin_pct" type="number" min="1" max="90" value="30" /></label>
-              </div>
-            </section>
-
-            <section class="form-section">
-              <h3>3) ต้นทุนและราคาขาย</h3>
-              <div class="form-grid">
-                <label>ค่าวัสดุ<input name="material_cost" type="number" min="0" step="0.01" required /></label>
-                <label>ค่าแรง<input name="labor_cost" type="number" min="0" step="0.01" required /></label>
-                <label>ค่าเดินทาง<input name="travel_cost" type="number" min="0" step="0.01" required /></label>
-                <label>เผื่อความเสี่ยง (override)<input name="risk_buffer_cost" type="number" min="0" step="0.01" /></label>
-                <label>เผื่อรับประกัน (override)<input name="warranty_buffer_cost" type="number" min="0" step="0.01" /></label>
-                <label>ราคาขายจริง (ถ้ามี)<input name="final_price" type="number" min="0" step="0.01" /></label>
-              </div>
-            </section>
-
-            <label>
-              หมายเหตุหน้างาน
-              <textarea name="notes" rows="3" placeholder="เช่น พื้นที่แคบ, ต้องทำงานกลางคืน, ลูกค้าขอเร่ง"></textarea>
-            </label>
-
-            <div class="inline-actions">
-              <button id="intakePreviewBtn" class="btn-ghost" type="button">พรีวิวราคาขายแนะนำ</button>
-              <button class="btn-primary" type="submit">บันทึกเคสลงระบบ</button>
-            </div>
-          </form>
-
-          <div id="intakePreviewCards" class="insight-cards"></div>
-          <div id="intakeWarnings" class="warning-list"></div>
-          <div id="intakeSummary" class="result-summary empty">ยังไม่มีข้อมูลเคสล่าสุด</div>
-          <details class="raw-details">
-            <summary>ดูข้อมูล JSON</summary>
-            <pre id="intakeResult" class="result-box"></pre>
-          </details>
-        </div>
-      </section>
-
-      <section class="tab-content" id="tab-calculator">
-        <div class="panel">
-          <div class="section-head">
-            <h2>คำนวณราคาด่วน</h2>
-            <p>ใช้ก่อนเสนอราคาหน้างานเพื่อเช็คว่า margin ยังอยู่ในเป้าหรือไม่</p>
-          </div>
-
-          <form id="calculatorForm" class="stack-form">
+          <form id="dailyForm" class="stack-form">
             <div class="form-grid">
-              <label>ค่าวัสดุ<input name="material_cost" type="number" min="0" step="0.01" required /></label>
-              <label>ค่าแรง<input name="labor_cost" type="number" min="0" step="0.01" required /></label>
-              <label>ค่าเดินทาง<input name="travel_cost" type="number" min="0" step="0.01" required /></label>
+              <label>วันที่<input name="log_date" type="date" required /></label>
+              <label>ชื่อเจ้าของ/ผู้กรอก<input name="owner_name" value="ตี๋" required /></label>
+              <label>ชื่ออา/พี่เลี้ยง<input name="mentor_name" required /></label>
+              <label>ร้าน/หน้างาน<input name="shop_or_site_name" /></label>
+              <label>อำเภอ<input name="district" /></label>
+              <label>เวลาเริ่ม<input name="start_time" type="time" /></label>
+              <label>เวลาเลิก<input name="end_time" type="time" /></label>
               <label>
-                Risk Level
-                <select name="risk_level">
-                  <option value="low">Low</option>
-                  <option value="medium" selected>Medium</option>
-                  <option value="high">High</option>
+                มีบรีฟความปลอดภัย
+                <select name="safety_briefing_done">
+                  <option value="false" selected>ไม่ระบุ</option>
+                  <option value="true">มี</option>
+                  <option value="false">ไม่มี</option>
                 </select>
               </label>
-              <label>Warranty (เดือน)<input name="warranty_months" type="number" min="0" value="12" /></label>
-              <label>Target Margin (%)<input name="target_margin_pct" type="number" min="1" max="90" value="30" /></label>
+            </div>
+
+            <label>เป้าหมายวันนี้<textarea name="today_goal" rows="2" required></textarea></label>
+            <label>ประเภทงานที่เห็น (คั่นด้วย ,)<textarea name="job_types_seen" rows="2" placeholder="ติดตั้งใหม่, ซ่อม, ตรวจเช็ก"></textarea></label>
+            <label>ประเภทลูกค้าที่เจอ<textarea name="customer_types_seen" rows="2" placeholder="ร้านค้า, โกดัง"></textarea></label>
+            <label>เครื่องมือที่เตรียม<textarea name="tools_prepared" rows="2"></textarea></label>
+            <label>คำถามที่อยากถามอา<textarea name="questions_to_ask" rows="2"></textarea></label>
+            <label>บทเรียนที่ได้วันนี้<textarea name="lesson_summary" rows="3" required></textarea></label>
+            <label>ความผิดพลาด/ความเสี่ยงที่สังเกต<textarea name="mistakes_or_risks_observed" rows="3"></textarea></label>
+            <label>โฟกัสของวันถัดไป<textarea name="next_day_focus" rows="2"></textarea></label>
+            <label>ลิงก์รูปจาก Drive (คั่นด้วย ,)<textarea name="photo_drive_links" rows="2" placeholder="https://drive.google.com/... , https://..."></textarea></label>
+
+            <div class="inline-actions">
+              <button class="btn-primary" data-submit-label="บันทึกเช็กอิน" type="submit">บันทึกเช็กอิน</button>
+            </div>
+          </form>
+
+          <div id="dailySummary" class="result-summary empty">ยังไม่มีรายการล่าสุด</div>
+          <pre id="dailyResult" class="result-box"></pre>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-task">
+        <div class="panel">
+          <div class="section-head">
+            <h2>เพิ่มงานย่อยหน้างาน</h2>
+            <p>เพิ่มได้หลายรายการต่อวัน และผูกกับ daily_id</p>
+          </div>
+
+          <form id="taskForm" class="stack-form">
+            <div class="form-grid">
+              <label>Daily ID<input name="daily_id" placeholder="DAY-20260304-001" required /></label>
+              <label>เวลา<input name="task_time" type="time" /></label>
+              <label>
+                หมวดงาน
+                <select name="task_category" required>
+                  <option value="สำรวจ">สำรวจ</option>
+                  <option value="ติดตั้ง">ติดตั้ง</option>
+                  <option value="ซ่อม">ซ่อม</option>
+                  <option value="ทดสอบ">ทดสอบ</option>
+                  <option value="ส่งมอบ">ส่งมอบ</option>
+                </select>
+              </label>
+              <label>
+                ลักษณะงาน
+                <select name="job_mode">
+                  <option value="ติดตั้งใหม่">ติดตั้งใหม่</option>
+                  <option value="ซ่อม">ซ่อม</option>
+                  <option value="บำรุง">บำรุง</option>
+                </select>
+              </label>
+              <label>
+                ประเภทสถานที่
+                <select name="site_type">
+                  <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+                  <option value="โกดัง">โกดัง</option>
+                  <option value="โรงงาน">โรงงาน</option>
+                </select>
+              </label>
+              <label>
+                บทบาทของเรา
+                <select name="my_role">
+                  <option value="ดูงาน">ดูงาน</option>
+                  <option value="ช่วยจับงาน">ช่วยจับงาน</option>
+                  <option value="ลงมือเอง">ลงมือเอง</option>
+                </select>
+              </label>
+              <label>ความยาก (1-5)<input name="difficulty_score" type="number" min="1" max="5" /></label>
+              <label>ความมั่นใจหลังทำ (1-5)<input name="confidence_after_task" type="number" min="1" max="5" /></label>
+            </div>
+
+            <label>อาการ/ความต้องการลูกค้า<textarea name="symptom_or_requirement" rows="2" required></textarea></label>
+            <label>สาเหตุที่คาด<textarea name="suspected_cause" rows="2"></textarea></label>
+            <label>วัสดุที่ใช้<textarea name="materials_used" rows="2"></textarea></label>
+            <label>เครื่องมือที่ใช้<textarea name="tools_used" rows="2"></textarea></label>
+            <label>ขั้นตอนที่ทำ<textarea name="step_notes" rows="3" required></textarea></label>
+            <label>จุดตรวจคุณภาพ<textarea name="quality_check_points" rows="2"></textarea></label>
+            <label>ความเสี่ยงด้านความปลอดภัย<textarea name="safety_risks" rows="2"></textarea></label>
+            <label>คำแนะนำจากอา<textarea name="mentor_tip" rows="2" required></textarea></label>
+            <label>คำถามที่ยังค้าง<textarea name="open_question" rows="2"></textarea></label>
+            <label>ลิงก์รูปจาก Drive<input name="photo_drive_link" type="url" placeholder="https://drive.google.com/..." /></label>
+
+            <div class="inline-actions">
+              <button class="btn-primary" data-submit-label="บันทึกงานย่อย" type="submit">บันทึกงานย่อย</button>
+            </div>
+          </form>
+
+          <div id="taskSummary" class="result-summary empty">ยังไม่มีรายการล่าสุด</div>
+          <pre id="taskResult" class="result-box"></pre>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-endday">
+        <div class="panel">
+          <div class="section-head">
+            <h2>สรุปปลายวัน (กรอกเร็ว)</h2>
+            <p>สำหรับวันที่ต้องการจดเฉพาะสรุปบทเรียนแบบย่อ</p>
+          </div>
+
+          <form id="endDayForm" class="stack-form">
+            <div class="form-grid two-cols">
+              <label>วันที่<input name="log_date" type="date" required /></label>
+              <label>ชื่ออา/พี่เลี้ยง<input name="mentor_name" required /></label>
+            </div>
+            <label>เป้าหมายวันนี้<textarea name="today_goal" rows="2" required></textarea></label>
+            <label>สรุปบทเรียนวันนี้<textarea name="lesson_summary" rows="3" required></textarea></label>
+            <label>ความเสี่ยง/สิ่งที่พลาด<textarea name="mistakes_or_risks_observed" rows="2"></textarea></label>
+            <label>โฟกัสพรุ่งนี้<textarea name="next_day_focus" rows="2"></textarea></label>
+            <label>ลิงก์รูปจาก Drive (ถ้ามี)<textarea name="photo_drive_links" rows="2" placeholder="https://drive.google.com/..."></textarea></label>
+
+            <div class="inline-actions">
+              <button class="btn-primary" data-submit-label="บันทึกสรุปปลายวัน" type="submit">บันทึกสรุปปลายวัน</button>
+            </div>
+          </form>
+
+          <div id="endDaySummary" class="result-summary empty">ยังไม่มีรายการล่าสุด</div>
+          <pre id="endDayResult" class="result-box"></pre>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-search">
+        <div class="panel">
+          <div class="section-head">
+            <h2>ค้นหา / ย้อนหลัง</h2>
+            <p>ค้นคำจากบทเรียนหรืออาการหน้างาน และดูข้อมูลย้อนหลังได้</p>
+          </div>
+
+          <form id="searchForm" class="stack-form">
+            <div class="form-grid two-cols">
+              <label>ค้นคำ<input name="q" placeholder="เช่น มอเตอร์ค้าง, เสียงดัง" /></label>
+              <label>Daily ID (ถ้าจะดูเฉพาะงานย่อยของวันนั้น)<input name="daily_id" placeholder="DAY-20260304-001" /></label>
             </div>
             <div class="inline-actions">
-              <button class="btn-primary" type="submit">คำนวณ</button>
-              <button id="copyToIntakeBtn" class="btn-ghost" type="button">คัดลอกไปหน้า Intake</button>
+              <button class="btn-primary" data-submit-label="ค้นหาโน้ต" type="submit">ค้นหาโน้ต</button>
             </div>
           </form>
 
-          <div id="calculatorSummary" class="result-summary empty">ยังไม่มีผลคำนวณ</div>
-          <details class="raw-details">
-            <summary>ดูข้อมูล JSON</summary>
-            <pre id="calculatorResult" class="result-box"></pre>
-          </details>
-        </div>
-      </section>
-
-      <section class="tab-content" id="tab-knowledge">
-        <div class="panel">
-          <div class="section-head">
-            <h2>คลังความรู้หน้างาน</h2>
-            <p>ค้นหา Q&A ที่ใช้ตอบลูกค้าและแก้ปัญหาหน้างานได้ทันที</p>
-          </div>
-
-          <form id="knowledgeForm" class="stack-form">
-            <div class="form-grid compact-grid">
-              <label>ค้นหา<input name="q" placeholder="เช่น มอเตอร์ค้าง, เสียงดัง, สปริง" /></label>
-              <label>Tag<input name="tag" placeholder="เช่น motor" /></label>
-            </div>
-            <div class="chip-row" id="knowledgeQuickTags">
-              <button type="button" class="chip-btn" data-tag="motor">motor</button>
-              <button type="button" class="chip-btn" data-tag="repair">repair</button>
-              <button type="button" class="chip-btn" data-tag="safety">safety</button>
-              <button type="button" class="chip-btn" data-tag="pricing">pricing</button>
-            </div>
-            <div class="inline-actions"><button class="btn-primary" type="submit">ค้นหา</button></div>
-          </form>
-          <div id="knowledgeResults" class="knowledge-list"></div>
-        </div>
-      </section>
-
-      <section class="tab-content" id="tab-analytics">
-        <div class="panel">
-          <div class="section-head">
-            <h2>สรุปภาพรวมธุรกิจ</h2>
-            <p>ดูจำนวนเคส, กำไรเฉลี่ย, และเคสเสี่ยงกำไรต่ำในช่วงวันที่ต้องการ</p>
-          </div>
-
-          <div class="chip-row" id="analyticsQuickRanges">
-            <button type="button" class="chip-btn" data-range="7">7 วันล่าสุด</button>
-            <button type="button" class="chip-btn" data-range="30">30 วันล่าสุด</button>
-            <button type="button" class="chip-btn" data-range="90">90 วันล่าสุด</button>
-            <button type="button" class="chip-btn" data-range="today">วันนี้</button>
-          </div>
-
-          <form id="analyticsForm" class="stack-form">
-            <div class="form-grid compact-grid">
+          <form id="historyForm" class="stack-form history-form">
+            <div class="form-grid two-cols">
               <label>จากวันที่<input name="from" type="date" /></label>
               <label>ถึงวันที่<input name="to" type="date" /></label>
             </div>
             <div class="inline-actions">
-              <button class="btn-primary" type="submit">โหลดสรุป</button>
-              <button class="btn-ghost" id="refreshAnalyticsBtn" type="button">รีเฟรช analytics_daily</button>
+              <button class="btn-ghost" data-submit-label="โหลดประวัติรายวัน" type="submit">โหลดประวัติรายวัน</button>
             </div>
           </form>
 
-          <div id="analyticsCards" class="analytics-cards"></div>
-          <div class="panel subtle-panel">
-            <h3>Top Cost Drivers</h3>
-            <ul id="topDriversList" class="simple-list"></ul>
+          <h3>ผลค้นหาโน้ต</h3>
+          <div id="searchNotesResults" class="list-output"></div>
+
+          <h3>ประวัติรายวัน</h3>
+          <div id="dailyHistoryResults" class="list-output"></div>
+
+          <h3>งานย่อยของ Daily ID</h3>
+          <div id="taskHistoryResults" class="list-output"></div>
+
+          <pre id="searchRawResult" class="result-box"></pre>
+        </div>
+      </section>
+
+      <section class="tab-content" id="tab-weekly">
+        <div class="panel">
+          <div class="section-head">
+            <h2>สรุปรายสัปดาห์</h2>
+            <p>ใช้สรุปทุกสิ้นสัปดาห์เพื่อดูพัฒนาการและแผนสัปดาห์ถัดไป</p>
           </div>
-          <details class="raw-details">
-            <summary>ดูข้อมูล JSON</summary>
-            <pre id="analyticsResult" class="result-box"></pre>
-          </details>
+
+          <form id="weeklyForm" class="stack-form">
+            <div class="form-grid">
+              <label>สัปดาห์ที่ (1-53)<input name="week_no" type="number" min="1" max="53" required /></label>
+              <label>เริ่มวันที่<input name="from_date" type="date" required /></label>
+              <label>ถึงวันที่<input name="to_date" type="date" required /></label>
+            </div>
+
+            <label>Top Lessons<textarea name="top_lessons" rows="3" required></textarea></label>
+            <label>ปัญหาที่เจอซ้ำ<textarea name="repeated_problems" rows="2"></textarea></label>
+            <label>ทักษะที่พัฒนา<textarea name="skills_improved" rows="2"></textarea></label>
+            <label>ทักษะที่ต้องฝึกเพิ่ม<textarea name="skills_need_practice" rows="2"></textarea></label>
+            <label>แผนสัปดาห์ถัดไป<textarea name="next_week_plan" rows="3" required></textarea></label>
+
+            <div class="inline-actions">
+              <button class="btn-primary" data-submit-label="บันทึกสรุปรายสัปดาห์" type="submit">บันทึกสรุปรายสัปดาห์</button>
+            </div>
+          </form>
+
+          <div id="weeklySummary" class="result-summary empty">ยังไม่มีรายการล่าสุด</div>
+          <pre id="weeklyResult" class="result-box"></pre>
         </div>
       </section>
     </main>
