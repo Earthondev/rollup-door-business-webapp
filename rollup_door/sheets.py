@@ -481,6 +481,11 @@ def search_study_notes(service, spreadsheet_id: str, query: str) -> list[dict[st
                 str(row.get("mistakes_or_risks_observed", "")),
                 str(row.get("questions_to_ask", "")),
                 str(row.get("today_goal", "")),
+                str(row.get("customer_problem", "")),
+                str(row.get("price_signal", "")),
+                str(row.get("supplier_or_contact", "")),
+                str(row.get("business_idea", "")),
+                str(row.get("follow_up_note", "")),
             ]
         ).lower()
         if q in haystack:
@@ -492,6 +497,9 @@ def search_study_notes(service, spreadsheet_id: str, query: str) -> list[dict[st
                     "lesson_summary": row.get("lesson_summary", ""),
                     "mistakes_or_risks_observed": row.get("mistakes_or_risks_observed", ""),
                     "question": row.get("questions_to_ask", ""),
+                    "customer_problem": row.get("customer_problem", ""),
+                    "price_signal": row.get("price_signal", ""),
+                    "business_idea": row.get("business_idea", ""),
                 }
             )
 
@@ -502,6 +510,10 @@ def search_study_notes(service, spreadsheet_id: str, query: str) -> list[dict[st
                 str(row.get("mentor_tip", "")),
                 str(row.get("open_question", "")),
                 str(row.get("step_notes", "")),
+                str(row.get("customer_objection", "")),
+                str(row.get("cost_or_price_note", "")),
+                str(row.get("supplier_name", "")),
+                str(row.get("business_takeaway", "")),
             ]
         ).lower()
         if q in haystack:
@@ -513,6 +525,8 @@ def search_study_notes(service, spreadsheet_id: str, query: str) -> list[dict[st
                     "symptom_or_requirement": row.get("symptom_or_requirement", ""),
                     "mentor_tip": row.get("mentor_tip", ""),
                     "open_question": row.get("open_question", ""),
+                    "cost_or_price_note": row.get("cost_or_price_note", ""),
+                    "business_takeaway": row.get("business_takeaway", ""),
                 }
             )
 

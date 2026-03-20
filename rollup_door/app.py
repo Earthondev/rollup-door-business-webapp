@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +20,7 @@ from .sheets import (
     append_study_weekly_review,
     build_weekly_review_id,
     get_sheets_service,
+    initialize_rollup_sheet,
     list_study_daily_rows,
     list_study_tasks_by_daily_id,
     next_case_id,
@@ -63,6 +64,13 @@ def _to_bool(value: Any) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "y"}
 
 
+def _clean_text(value: Any, default: str = "") -> str:
+    if value is None:
+        return default
+    cleaned = str(value).strip()
+    return cleaned or default
+
+
 
 def _to_date(value: Any, field_name: str) -> date:
     try:
@@ -94,16 +102,6 @@ def _optional_int_range(value: Any, field_name: str, minimum: int, maximum: int)
 
 def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
     cfg = load_config(config_path)
-    startup_errors = cfg.validate_runtime_requirements()
-    if startup_errors:
-        raise RuntimeError("config_validation_failed:" + ",".join(startup_errors))
-
-    service = get_sheets_service(
-        token_path=cfg.token_path,
-        client_secrets_path=cfg.client_secrets_path,
-        service_account_json=cfg.google_service_account_json,
-        force_service_account=cfg.requires_service_account(),
-    )
     rate_limiter = InMemoryRateLimiter(cfg.rate_limit_per_minute)
     security_cfg = SecurityConfig(
         access_key_id=cfg.access_key_id,
@@ -112,12 +110,49 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
         rate_limit_per_minute=cfg.rate_limit_per_minute,
     )
     case_lock = threading.Lock()
+    sheets_lock = threading.Lock()
+    sheets_service: Any | None = None
+    sheets_init_error = ""
 
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.config["ROLLUP_CONFIG"] = cfg
 
     logs_dir = Path(cfg.logs_dir)
     logs_dir.mkdir(parents=True, exist_ok=True)
+
+    def _get_sheets_service():
+        nonlocal sheets_service, sheets_init_error
+        if sheets_service is not None:
+            return sheets_service
+
+        with sheets_lock:
+            if sheets_service is not None:
+                return sheets_service
+            if cfg.requires_service_account() and not cfg.has_google_credentials():
+                sheets_init_error = "missing_google_credentials"
+                raise RuntimeError(sheets_init_error)
+            try:
+                sheets_service = get_sheets_service(
+                    token_path=cfg.token_path,
+                    client_secrets_path=cfg.client_secrets_path,
+                    oauth_token_json=cfg.oauth_token_json,
+                    oauth_client_secrets_json=cfg.oauth_client_secrets_json,
+                    service_account_json=cfg.google_service_account_json,
+                    force_service_account=cfg.requires_service_account() and not cfg.has_oauth_credentials(),
+                )
+                if cfg.spreadsheet_id.strip():
+                    initialize_rollup_sheet(sheets_service, cfg.spreadsheet_id)
+                sheets_init_error = ""
+                return sheets_service
+            except Exception as exc:
+                sheets_init_error = str(exc)
+                raise RuntimeError(sheets_init_error) from exc
+
+    def _service_unavailable_response():
+        details = cfg.validate_runtime_requirements()
+        if not details and sheets_init_error:
+            details = [sheets_init_error]
+        return jsonify({"ok": False, "error": "service_unavailable", "details": details}), 503
 
     @app.before_request
     def _api_guard():
@@ -189,6 +224,11 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.post("/api/v1/cases")
     def api_create_case():
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
         payload = request.get_json(silent=True) or {}
         required = [
             "creator_name",
@@ -319,6 +359,11 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.get("/api/v1/knowledge/search")
     def api_search_knowledge():
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
         q = request.args.get("q", "")
         tag = request.args.get("tag", "")
         results = search_knowledge(service, cfg.spreadsheet_id, query=q, tag=tag)
@@ -326,6 +371,11 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.get("/api/v1/analytics/summary")
     def api_summary():
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
         from_raw = request.args.get("from", "")
         to_raw = request.args.get("to", "")
         try:
@@ -355,14 +405,16 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.post("/api/v1/study/daily")
     def api_study_daily():
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
         payload = request.get_json(silent=True) or {}
-        required = ["log_date", "owner_name", "mentor_name", "today_goal", "lesson_summary"]
-        missing = [field for field in required if str(payload.get(field, "")).strip() == ""]
-        if missing:
-            return jsonify({"ok": False, "error": "missing_required_fields", "fields": missing}), 400
 
         try:
-            log_date = _to_date(payload.get("log_date"), "log_date")
+            log_date_raw = _clean_text(payload.get("log_date"))
+            log_date = _to_date(log_date_raw, "log_date") if log_date_raw else date.today()
             _validate_https_links(str(payload.get("photo_drive_links", "")).strip(), "photo_drive_links")
         except ValueError as err:
             return jsonify({"ok": False, "error": str(err)}), 400
@@ -373,22 +425,27 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
             row = {
                 "daily_id": daily_id,
                 "log_date": log_date.isoformat(),
-                "owner_name": str(payload.get("owner_name", "ตี๋")).strip() or "ตี๋",
-                "mentor_name": str(payload.get("mentor_name", "")).strip(),
-                "shop_or_site_name": str(payload.get("shop_or_site_name", "")).strip(),
-                "district": str(payload.get("district", "")).strip(),
-                "start_time": str(payload.get("start_time", "")).strip(),
-                "end_time": str(payload.get("end_time", "")).strip(),
-                "today_goal": str(payload.get("today_goal", "")).strip(),
-                "job_types_seen": str(payload.get("job_types_seen", "")).strip(),
-                "customer_types_seen": str(payload.get("customer_types_seen", "")).strip(),
+                "owner_name": _clean_text(payload.get("owner_name"), "ผู้เรียน"),
+                "mentor_name": _clean_text(payload.get("mentor_name")),
+                "shop_or_site_name": _clean_text(payload.get("shop_or_site_name")),
+                "district": _clean_text(payload.get("district")),
+                "start_time": _clean_text(payload.get("start_time")),
+                "end_time": _clean_text(payload.get("end_time")),
+                "today_goal": _clean_text(payload.get("today_goal")),
+                "job_types_seen": _clean_text(payload.get("job_types_seen")),
+                "customer_types_seen": _clean_text(payload.get("customer_types_seen")),
                 "safety_briefing_done": "TRUE" if _to_bool(payload.get("safety_briefing_done", False)) else "FALSE",
-                "tools_prepared": str(payload.get("tools_prepared", "")).strip(),
-                "questions_to_ask": str(payload.get("questions_to_ask", "")).strip(),
-                "lesson_summary": str(payload.get("lesson_summary", "")).strip(),
-                "mistakes_or_risks_observed": str(payload.get("mistakes_or_risks_observed", "")).strip(),
-                "next_day_focus": str(payload.get("next_day_focus", "")).strip(),
-                "photo_drive_links": str(payload.get("photo_drive_links", "")).strip(),
+                "tools_prepared": _clean_text(payload.get("tools_prepared")),
+                "questions_to_ask": _clean_text(payload.get("questions_to_ask")),
+                "customer_problem": _clean_text(payload.get("customer_problem")),
+                "price_signal": _clean_text(payload.get("price_signal")),
+                "supplier_or_contact": _clean_text(payload.get("supplier_or_contact")),
+                "lesson_summary": _clean_text(payload.get("lesson_summary")),
+                "mistakes_or_risks_observed": _clean_text(payload.get("mistakes_or_risks_observed")),
+                "next_day_focus": _clean_text(payload.get("next_day_focus")),
+                "business_idea": _clean_text(payload.get("business_idea")),
+                "follow_up_note": _clean_text(payload.get("follow_up_note")),
+                "photo_drive_links": _clean_text(payload.get("photo_drive_links")),
                 "created_at": now.isoformat(timespec="seconds"),
             }
             append_study_daily(service, cfg.spreadsheet_id, row)
@@ -397,16 +454,17 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.post("/api/v1/study/tasks")
     def api_study_tasks():
-        payload = request.get_json(silent=True) or {}
-        required = ["daily_id", "task_category", "symptom_or_requirement", "step_notes", "mentor_tip"]
-        missing = [field for field in required if str(payload.get(field, "")).strip() == ""]
-        if missing:
-            return jsonify({"ok": False, "error": "missing_required_fields", "fields": missing}), 400
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
 
-        daily_id = str(payload.get("daily_id", "")).strip()
-        daily_rows = read_table_rows(service, cfg.spreadsheet_id, "study_daily")
-        if not any(str(row.get("daily_id", "")).strip() == daily_id for row in daily_rows):
-            return jsonify({"ok": False, "error": "daily_id_not_found"}), 400
+        payload = request.get_json(silent=True) or {}
+        daily_id = _clean_text(payload.get("daily_id"))
+        if daily_id:
+            daily_rows = read_table_rows(service, cfg.spreadsheet_id, "study_daily")
+            if not any(str(row.get("daily_id", "")).strip() == daily_id for row in daily_rows):
+                return jsonify({"ok": False, "error": "daily_id_not_found"}), 400
 
         try:
             difficulty_score = _optional_int_range(payload.get("difficulty_score"), "difficulty_score", 1, 5)
@@ -428,23 +486,28 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
             row = {
                 "task_id": task_id,
                 "daily_id": daily_id,
-                "task_time": str(payload.get("task_time", "")).strip(),
-                "task_category": str(payload.get("task_category", "")).strip(),
-                "job_mode": str(payload.get("job_mode", "")).strip(),
-                "site_type": str(payload.get("site_type", "")).strip(),
-                "symptom_or_requirement": str(payload.get("symptom_or_requirement", "")).strip(),
-                "suspected_cause": str(payload.get("suspected_cause", "")).strip(),
-                "materials_used": str(payload.get("materials_used", "")).strip(),
-                "tools_used": str(payload.get("tools_used", "")).strip(),
-                "step_notes": str(payload.get("step_notes", "")).strip(),
-                "quality_check_points": str(payload.get("quality_check_points", "")).strip(),
-                "safety_risks": str(payload.get("safety_risks", "")).strip(),
-                "mentor_tip": str(payload.get("mentor_tip", "")).strip(),
-                "my_role": str(payload.get("my_role", "")).strip(),
+                "task_time": _clean_text(payload.get("task_time")),
+                "task_category": _clean_text(payload.get("task_category"), "บันทึกทั่วไป"),
+                "job_mode": _clean_text(payload.get("job_mode"), "เรียนงาน"),
+                "site_type": _clean_text(payload.get("site_type")),
+                "symptom_or_requirement": _clean_text(payload.get("symptom_or_requirement")),
+                "suspected_cause": _clean_text(payload.get("suspected_cause")),
+                "materials_used": _clean_text(payload.get("materials_used")),
+                "tools_used": _clean_text(payload.get("tools_used")),
+                "step_notes": _clean_text(payload.get("step_notes")),
+                "quality_check_points": _clean_text(payload.get("quality_check_points")),
+                "safety_risks": _clean_text(payload.get("safety_risks")),
+                "mentor_tip": _clean_text(payload.get("mentor_tip")),
+                "customer_objection": _clean_text(payload.get("customer_objection")),
+                "my_role": _clean_text(payload.get("my_role"), "ดูงาน"),
                 "difficulty_score": difficulty_score if difficulty_score is not None else "",
                 "confidence_after_task": confidence_score if confidence_score is not None else "",
-                "open_question": str(payload.get("open_question", "")).strip(),
+                "open_question": _clean_text(payload.get("open_question")),
                 "photo_drive_link": photo_drive_link,
+                "time_spent_note": _clean_text(payload.get("time_spent_note")),
+                "cost_or_price_note": _clean_text(payload.get("cost_or_price_note")),
+                "supplier_name": _clean_text(payload.get("supplier_name")),
+                "business_takeaway": _clean_text(payload.get("business_takeaway")),
                 "created_at": now.isoformat(timespec="seconds"),
             }
             append_study_task(service, cfg.spreadsheet_id, row)
@@ -453,18 +516,23 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.post("/api/v1/study/weekly-review")
     def api_study_weekly_review():
-        payload = request.get_json(silent=True) or {}
-        required = ["week_no", "from_date", "to_date", "top_lessons", "next_week_plan"]
-        missing = [field for field in required if str(payload.get(field, "")).strip() == ""]
-        if missing:
-            return jsonify({"ok": False, "error": "missing_required_fields", "fields": missing}), 400
-
         try:
-            week_no = _to_int(payload.get("week_no"), "week_no", minimum=1)
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
+        payload = request.get_json(silent=True) or {}
+        try:
+            today = date.today()
+            default_from_date = today - timedelta(days=today.weekday())
+            from_raw = _clean_text(payload.get("from_date"))
+            to_raw = _clean_text(payload.get("to_date"))
+            from_date = _to_date(from_raw, "from_date") if from_raw else default_from_date
+            to_date = _to_date(to_raw, "to_date") if to_raw else today
+            week_raw = _clean_text(payload.get("week_no"))
+            week_no = _to_int(week_raw, "week_no", minimum=1) if week_raw else from_date.isocalendar().week
             if week_no > 53:
                 raise ValueError("invalid_week_no")
-            from_date = _to_date(payload.get("from_date"), "from_date")
-            to_date = _to_date(payload.get("to_date"), "to_date")
         except ValueError as err:
             return jsonify({"ok": False, "error": str(err)}), 400
 
@@ -477,11 +545,13 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
             "week_no": week_no,
             "from_date": from_date.isoformat(),
             "to_date": to_date.isoformat(),
-            "top_lessons": str(payload.get("top_lessons", "")).strip(),
-            "repeated_problems": str(payload.get("repeated_problems", "")).strip(),
-            "skills_improved": str(payload.get("skills_improved", "")).strip(),
-            "skills_need_practice": str(payload.get("skills_need_practice", "")).strip(),
-            "next_week_plan": str(payload.get("next_week_plan", "")).strip(),
+            "top_lessons": _clean_text(payload.get("top_lessons")),
+            "repeated_problems": _clean_text(payload.get("repeated_problems")),
+            "skills_improved": _clean_text(payload.get("skills_improved")),
+            "skills_need_practice": _clean_text(payload.get("skills_need_practice")),
+            "next_week_plan": _clean_text(payload.get("next_week_plan")),
+            "business_opportunities": _clean_text(payload.get("business_opportunities")),
+            "process_to_standardize": _clean_text(payload.get("process_to_standardize")),
             "created_at": datetime.now().isoformat(timespec="seconds"),
         }
         append_study_weekly_review(service, cfg.spreadsheet_id, row)
@@ -489,6 +559,11 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.get("/api/v1/study/daily")
     def api_get_study_daily():
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
         from_raw = request.args.get("from", "")
         to_raw = request.args.get("to", "")
         try:
@@ -507,12 +582,22 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.get("/api/v1/study/tasks")
     def api_get_study_tasks():
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
         daily_id = request.args.get("daily_id", "")
         items = list_study_tasks_by_daily_id(service, cfg.spreadsheet_id, daily_id=daily_id)
         return jsonify({"ok": True, "items": items, "count": len(items)})
 
     @app.get("/api/v1/study/search")
     def api_study_search():
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
         q = request.args.get("q", "")
         items = search_study_notes(service, cfg.spreadsheet_id, query=q)
         return jsonify({"ok": True, "items": items, "count": len(items)})
@@ -535,6 +620,7 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
         try:
             with case_lock:
+                service = _get_sheets_service()
                 event_id = next_study_event_id(service, cfg.spreadsheet_id, now)
                 append_study_event(
                     service,
@@ -555,6 +641,11 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
 
     @app.post("/api/v1/analytics/refresh")
     def api_refresh_analytics():
+        try:
+            service = _get_sheets_service()
+        except RuntimeError:
+            return _service_unavailable_response()
+
         refreshed_days = refresh_analytics_daily(
             service=service,
             spreadsheet_id=cfg.spreadsheet_id,
@@ -573,6 +664,7 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
                 "dependencies": {
                     "spreadsheet_id": bool(cfg.spreadsheet_id.strip()),
                     "google_service_account": bool(cfg.google_service_account_json.strip()),
+                    "google_oauth": bool(cfg.has_oauth_credentials()),
                     "access_key_id": bool(
                         cfg.access_key_id.strip() and cfg.access_key_id != "change-me"
                     ),
@@ -580,8 +672,10 @@ def create_app(config_path: str = str(DEFAULT_CONFIG_PATH)) -> Flask:
                         cfg.access_key_secret.strip()
                         and cfg.access_key_secret != "change-me-secret"
                     ),
+                    "sheets_client_initialized": sheets_service is not None,
                 },
                 "errors": errors,
+                "sheets_init_error": sheets_init_error or None,
             }
         )
 

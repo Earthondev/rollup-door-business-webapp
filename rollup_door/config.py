@@ -33,6 +33,17 @@ class RollupConfig:
     def requires_service_account(self) -> bool:
         return self.environment.lower() in {"production", "render", "staging"}
 
+    def has_oauth_credentials(self) -> bool:
+        return bool(
+            self.oauth_token_json.strip()
+            or self.oauth_client_secrets_json.strip()
+            or Path(self.token_path).exists()
+            or Path(self.client_secrets_path).exists()
+        )
+
+    def has_google_credentials(self) -> bool:
+        return bool(self.google_service_account_json.strip()) or self.has_oauth_credentials()
+
     def validate_runtime_requirements(self, require_service_account: bool | None = None) -> list[str]:
         require_sa = self.requires_service_account() if require_service_account is None else require_service_account
 
@@ -43,8 +54,8 @@ class RollupConfig:
             errors.append("missing_access_key_id")
         if not self.access_key_secret.strip() or self.access_key_secret == "change-me-secret":
             errors.append("missing_access_key_secret")
-        if require_sa and not self.google_service_account_json.strip():
-            errors.append("missing_google_service_account")
+        if require_sa and not self.has_google_credentials():
+            errors.append("missing_google_credentials")
 
         return errors
 

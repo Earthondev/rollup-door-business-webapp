@@ -1,6 +1,7 @@
 const ACCESS_KEY_STORAGE = "rollup_access_key_id";
 const ACCESS_SECRET_STORAGE = "rollup_access_key_secret";
 const OWNER_NAME_STORAGE = "rollup_owner_name";
+const DEFAULT_OWNER_NAME = "ผู้เรียน";
 
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabContents = Array.from(document.querySelectorAll(".tab-content"));
@@ -200,6 +201,11 @@ function renderCards(element, items, builder) {
   element.appendChild(fragment);
 }
 
+function optionalSummaryLine(label, value) {
+  if (!value) return null;
+  return `${label}: ${value}`;
+}
+
 async function submitDaily(payload, targetResultEl, targetSummaryEl, submitButton) {
   withSubmitLock(submitButton, "กำลังบันทึก...");
   targetResultEl.textContent = "กำลังบันทึก...";
@@ -209,18 +215,22 @@ async function submitDaily(payload, targetResultEl, targetSummaryEl, submitButto
     const data = await signedFetch("POST", "/api/v1/study/daily", payload);
     targetResultEl.textContent = toPrettyJson(data);
 
-    renderSummary(targetSummaryEl, [
+    const summaryLines = [
       `บันทึกสำเร็จ: ${data.daily_id}`,
-      `วันที่: ${payload.log_date || "-"}`,
-      `พี่เลี้ยง: ${payload.mentor_name || "-"}`,
-    ]);
+      `วันที่: ${payload.log_date || new Date().toISOString().slice(0, 10)}`,
+      optionalSummaryLine("ช่าง/พี่เลี้ยง", payload.mentor_name),
+      optionalSummaryLine("ช่วงราคา", payload.price_signal),
+      optionalSummaryLine("ไอเดียธุรกิจ", payload.business_idea),
+    ].filter(Boolean);
+
+    renderSummary(targetSummaryEl, summaryLines);
 
     const dailyIdInput = taskForm.querySelector("input[name='daily_id']");
     if (dailyIdInput) {
       dailyIdInput.value = data.daily_id;
     }
 
-    localStorage.setItem(OWNER_NAME_STORAGE, payload.owner_name || "ตี๋");
+    localStorage.setItem(OWNER_NAME_STORAGE, payload.owner_name || DEFAULT_OWNER_NAME);
     setAccessStatus("บันทึกข้อมูลรายวันสำเร็จ", "success");
   } catch (err) {
     targetResultEl.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
@@ -237,7 +247,7 @@ async function onDailySubmit(event) {
 
   const payload = {
     ...raw,
-    owner_name: raw.owner_name || "ตี๋",
+    owner_name: raw.owner_name || DEFAULT_OWNER_NAME,
     safety_briefing_done: raw.safety_briefing_done === "true",
   };
 
@@ -268,11 +278,16 @@ async function onTaskSubmit(event) {
     const data = await signedFetch("POST", "/api/v1/study/tasks", payload);
     taskResult.textContent = toPrettyJson(data);
 
-    renderSummary(taskSummary, [
-      `บันทึกงานย่อยสำเร็จ: ${data.task_id}`,
-      `Daily ID: ${raw.daily_id || "-"}`,
-      `หมวดงาน: ${raw.task_category || "-"}`,
-    ]);
+    renderSummary(
+      taskSummary,
+      [
+        `บันทึกงานย่อยสำเร็จ: ${data.task_id}`,
+        `Daily ID: ${raw.daily_id || "-"}`,
+        `หมวดงาน: ${raw.task_category || "-"}`,
+        optionalSummaryLine("ราคาหรือต้นทุน", raw.cost_or_price_note),
+        optionalSummaryLine("ข้อคิดเชิงธุรกิจ", raw.business_takeaway),
+      ].filter(Boolean),
+    );
 
     setAccessStatus("บันทึกงานย่อยสำเร็จ", "success");
   } catch (err) {
@@ -288,7 +303,7 @@ async function onEndDaySubmit(event) {
   const submitButton = endDayForm.querySelector("button[type='submit']");
   const raw = collectForm(endDayForm);
 
-  const ownerName = localStorage.getItem(OWNER_NAME_STORAGE) || "ตี๋";
+  const ownerName = localStorage.getItem(OWNER_NAME_STORAGE) || DEFAULT_OWNER_NAME;
 
   const payload = {
     log_date: raw.log_date,
@@ -304,9 +319,14 @@ async function onEndDaySubmit(event) {
     safety_briefing_done: false,
     tools_prepared: "",
     questions_to_ask: "",
+    customer_problem: "",
+    supplier_or_contact: "",
     lesson_summary: raw.lesson_summary,
+    price_signal: raw.price_signal,
     mistakes_or_risks_observed: raw.mistakes_or_risks_observed,
     next_day_focus: raw.next_day_focus,
+    business_idea: raw.business_idea,
+    follow_up_note: raw.follow_up_note,
     photo_drive_links: raw.photo_drive_links,
   };
 
@@ -336,6 +356,9 @@ async function onSearchSubmit(event) {
         return `
           <p class="meta">${item.source} | ${item.id || "-"} | ${item.log_date || "-"}</p>
           <p><strong>บทเรียน:</strong> ${item.lesson_summary || "-"}</p>
+          <p><strong>โจทย์ลูกค้า:</strong> ${item.customer_problem || "-"}</p>
+          <p><strong>ราคา/สัญญาณราคา:</strong> ${item.price_signal || "-"}</p>
+          <p><strong>ไอเดียธุรกิจ:</strong> ${item.business_idea || "-"}</p>
           <p><strong>สิ่งที่เสี่ยง/พลาด:</strong> ${item.mistakes_or_risks_observed || "-"}</p>
           <p><strong>คำถาม:</strong> ${item.question || "-"}</p>
         `;
@@ -344,6 +367,8 @@ async function onSearchSubmit(event) {
         <p class="meta">${item.source} | ${item.id || "-"} | Daily ${item.daily_id || "-"}</p>
         <p><strong>อาการ:</strong> ${item.symptom_or_requirement || "-"}</p>
         <p><strong>คำแนะนำจากอา:</strong> ${item.mentor_tip || "-"}</p>
+        <p><strong>ต้นทุน/ราคา:</strong> ${item.cost_or_price_note || "-"}</p>
+        <p><strong>ข้อคิดธุรกิจ:</strong> ${item.business_takeaway || "-"}</p>
         <p><strong>คำถามค้าง:</strong> ${item.open_question || "-"}</p>
       `;
     });
@@ -362,6 +387,8 @@ async function onSearchSubmit(event) {
         <p><strong>อาการ:</strong> ${item.symptom_or_requirement || "-"}</p>
         <p><strong>ขั้นตอน:</strong> ${item.step_notes || "-"}</p>
         <p><strong>คำแนะนำ:</strong> ${item.mentor_tip || "-"}</p>
+        <p><strong>ต้นทุน/ราคา:</strong> ${item.cost_or_price_note || "-"}</p>
+        <p><strong>ข้อคิดธุรกิจ:</strong> ${item.business_takeaway || "-"}</p>
       `);
     } else {
       taskHistoryResults.innerHTML = '<p class="meta">กรอก Daily ID เพื่อดูงานย่อยของวันนั้น</p>';
@@ -399,6 +426,8 @@ async function onHistorySubmit(event) {
       <p><strong>พี่เลี้ยง:</strong> ${item.mentor_name || "-"}</p>
       <p><strong>เป้าหมาย:</strong> ${item.today_goal || "-"}</p>
       <p><strong>บทเรียน:</strong> ${item.lesson_summary || "-"}</p>
+      <p><strong>ราคา:</strong> ${item.price_signal || "-"}</p>
+      <p><strong>ไอเดียธุรกิจ:</strong> ${item.business_idea || "-"}</p>
     `);
 
     searchRawResult.textContent = toPrettyJson(dailyData);
@@ -420,17 +449,21 @@ async function onWeeklySubmit(event) {
   try {
     const payload = {
       ...raw,
-      week_no: Number(raw.week_no),
+      week_no: raw.week_no || "",
     };
 
     const data = await signedFetch("POST", "/api/v1/study/weekly-review", payload);
     weeklyResult.textContent = toPrettyJson(data);
 
-    renderSummary(weeklySummary, [
-      `บันทึกสรุปรายสัปดาห์สำเร็จ: ${data.review_id}`,
-      `ช่วงวันที่: ${raw.from_date || "-"} ถึง ${raw.to_date || "-"}`,
-      `สัปดาห์ที่: ${raw.week_no || "-"}`,
-    ]);
+    renderSummary(
+      weeklySummary,
+      [
+        `บันทึกสรุปรายสัปดาห์สำเร็จ: ${data.review_id}`,
+        `ช่วงวันที่: ${raw.from_date || "สัปดาห์ปัจจุบัน"} ถึง ${raw.to_date || "วันนี้"}`,
+        `สัปดาห์ที่: ${raw.week_no || "คำนวณอัตโนมัติ"}`,
+        optionalSummaryLine("โอกาสธุรกิจ", raw.business_opportunities),
+      ].filter(Boolean),
+    );
 
     setAccessStatus("บันทึกสรุปรายสัปดาห์สำเร็จ", "success");
   } catch (err) {
@@ -471,7 +504,7 @@ function setDefaultDates() {
   endDayForm.querySelector("input[name='log_date']").value = today;
 
   const ownerInput = dailyForm.querySelector("input[name='owner_name']");
-  ownerInput.value = localStorage.getItem(OWNER_NAME_STORAGE) || "ตี๋";
+  ownerInput.value = localStorage.getItem(OWNER_NAME_STORAGE) || DEFAULT_OWNER_NAME;
 }
 
 function init() {

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>สมุดจดเรียนงานประตูเหล็กม้วน</title>
+    <title>สมุดเรียนงานช่างประตูม้วน</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -17,10 +17,13 @@
     <div class="bg-layer"></div>
     <main class="app-shell">
       <header class="hero">
-        <p class="eyebrow">Study Log V1</p>
-        <h1>สมุดจดเรียนงาน 1 เดือน</h1>
-        <p class="subtitle">เว็บสำหรับจดสิ่งที่เรียนรู้จากหน้างานจริง แบบรายวัน + งานย่อย เพื่อใช้ต่อยอดธุรกิจในอนาคต</p>
-        <p class="owner-pill">เจ้าของร้าน: ตี๋ (tee)</p>
+        <p class="eyebrow">Field Learning Log</p>
+        <h1>สมุดเรียนงานช่างประตูม้วน</h1>
+        <p class="subtitle">
+          จดสิ่งที่เจอหน้างานจริงทุกวัน เก็บความรู้ ต้นทุน ราคา วัสดุ และไอเดียธุรกิจ
+          เพื่อเอาไปทำกิจการของตัวเองในอนาคต
+        </p>
+        <p class="owner-pill">กรอกเฉพาะที่มีได้เลย ช่องไหนยังไม่รู้เว้นว่างได้</p>
       </header>
 
       <section class="panel settings-panel">
@@ -48,7 +51,7 @@
       <nav class="tab-nav" role="tablist" aria-label="Study Pages">
         <button class="tab-btn active" data-tab="daily" role="tab">เช็กอินรายวัน</button>
         <button class="tab-btn" data-tab="task" role="tab">เพิ่มงานย่อย</button>
-        <button class="tab-btn" data-tab="endday" role="tab">สรุปปลายวัน</button>
+        <button class="tab-btn" data-tab="endday" role="tab">บันทึกเร็ว</button>
         <button class="tab-btn" data-tab="search" role="tab">ค้นหา/ย้อนหลัง</button>
         <button class="tab-btn" data-tab="weekly" role="tab">สรุปรายสัปดาห์</button>
       </nav>
@@ -57,14 +60,15 @@
         <div class="panel">
           <div class="section-head">
             <h2>เช็กอินรายวัน</h2>
-            <p>บันทึกข้อมูลประจำวันสำหรับการเรียนงาน</p>
+            <p>บันทึกภาพรวมของวัน ทั้งสิ่งที่เรียนรู้และมุมที่เอาไปต่อยอดธุรกิจได้</p>
           </div>
+          <p class="hint">ฟอร์มนี้เน้นเก็บข้อมูลให้ได้ก่อน รายละเอียดค่อยเติมทีหลังได้</p>
 
           <form id="dailyForm" class="stack-form">
             <div class="form-grid">
-              <label>วันที่<input name="log_date" type="date" required /></label>
-              <label>ชื่อเจ้าของ/ผู้กรอก<input name="owner_name" value="ตี๋" required /></label>
-              <label>ชื่ออา/พี่เลี้ยง<input name="mentor_name" required /></label>
+              <label>วันที่<input name="log_date" type="date" /></label>
+              <label>ชื่อผู้เรียน/ผู้กรอก<input name="owner_name" value="ผู้เรียน" /></label>
+              <label>ชื่อช่าง/พี่เลี้ยง<input name="mentor_name" /></label>
               <label>ร้าน/หน้างาน<input name="shop_or_site_name" /></label>
               <label>อำเภอ<input name="district" /></label>
               <label>เวลาเริ่ม<input name="start_time" type="time" /></label>
@@ -79,14 +83,19 @@
               </label>
             </div>
 
-            <label>เป้าหมายวันนี้<textarea name="today_goal" rows="2" required></textarea></label>
+            <label>เป้าหมายวันนี้<textarea name="today_goal" rows="2" placeholder="วันนี้ตั้งใจดูอะไรเป็นพิเศษ"></textarea></label>
             <label>ประเภทงานที่เห็น (คั่นด้วย ,)<textarea name="job_types_seen" rows="2" placeholder="ติดตั้งใหม่, ซ่อม, ตรวจเช็ก"></textarea></label>
             <label>ประเภทลูกค้าที่เจอ<textarea name="customer_types_seen" rows="2" placeholder="ร้านค้า, โกดัง"></textarea></label>
             <label>เครื่องมือที่เตรียม<textarea name="tools_prepared" rows="2"></textarea></label>
-            <label>คำถามที่อยากถามอา<textarea name="questions_to_ask" rows="2"></textarea></label>
-            <label>บทเรียนที่ได้วันนี้<textarea name="lesson_summary" rows="3" required></textarea></label>
+            <label>คำถามที่อยากถามช่าง<textarea name="questions_to_ask" rows="2"></textarea></label>
+            <label>ปัญหาลูกค้า/ความต้องการที่ได้ยิน<textarea name="customer_problem" rows="2" placeholder="ลูกค้ากังวลเรื่องอะไร อยากได้แบบไหน"></textarea></label>
+            <label>ราคาที่ได้ยิน / ช่วงราคาที่ประเมิน<textarea name="price_signal" rows="2" placeholder="เช่น งานซ่อมเบื้องต้น 2,500-4,000 บาท"></textarea></label>
+            <label>ร้านวัสดุ / เบอร์ช่าง / คนที่ควรถามต่อ<textarea name="supplier_or_contact" rows="2" placeholder="ชื่อร้าน, เบอร์โทร, แหล่งซื้อ"></textarea></label>
+            <label>บทเรียนที่ได้วันนี้<textarea name="lesson_summary" rows="3" placeholder="สิ่งที่ได้เรียนรู้จากหน้างาน"></textarea></label>
             <label>ความผิดพลาด/ความเสี่ยงที่สังเกต<textarea name="mistakes_or_risks_observed" rows="3"></textarea></label>
             <label>โฟกัสของวันถัดไป<textarea name="next_day_focus" rows="2"></textarea></label>
+            <label>ไอเดียที่เอาไปทำธุรกิจของตัวเองได้<textarea name="business_idea" rows="3" placeholder="สิ่งที่ควรทำเหมือนกัน หรือสิ่งที่ควรทำให้ดีกว่า"></textarea></label>
+            <label>สิ่งที่ต้องตามต่อ / ถามเพิ่ม / กลับมาดูซ้ำ<textarea name="follow_up_note" rows="2" placeholder="งานที่ต้องตาม, เรื่องที่ยังไม่เข้าใจ"></textarea></label>
             <label>ลิงก์รูปจาก Drive (คั่นด้วย ,)<textarea name="photo_drive_links" rows="2" placeholder="https://drive.google.com/... , https://..."></textarea></label>
 
             <div class="inline-actions">
@@ -103,16 +112,18 @@
         <div class="panel">
           <div class="section-head">
             <h2>เพิ่มงานย่อยหน้างาน</h2>
-            <p>เพิ่มได้หลายรายการต่อวัน และผูกกับ daily_id</p>
+            <p>ใช้บันทึกงานย่อยหรือโน้ตสั้นก็ได้ จะผูกกับ Daily ID หรือไม่ก็ได้</p>
           </div>
+          <p class="hint">ถ้ายังไม่ได้เช็กอินรายวัน ก็จดงานย่อยแยกเดี่ยวไว้ก่อนแล้วค่อยย้อนมาจัดภายหลังได้</p>
 
           <form id="taskForm" class="stack-form">
             <div class="form-grid">
-              <label>Daily ID<input name="daily_id" placeholder="DAY-20260304-001" required /></label>
+              <label>Daily ID (ถ้ามี)<input name="daily_id" placeholder="DAY-20260304-001" /></label>
               <label>เวลา<input name="task_time" type="time" /></label>
               <label>
                 หมวดงาน
-                <select name="task_category" required>
+                <select name="task_category">
+                  <option value="บันทึกทั่วไป">บันทึกทั่วไป</option>
                   <option value="สำรวจ">สำรวจ</option>
                   <option value="ติดตั้ง">ติดตั้ง</option>
                   <option value="ซ่อม">ซ่อม</option>
@@ -123,6 +134,7 @@
               <label>
                 ลักษณะงาน
                 <select name="job_mode">
+                  <option value="เรียนงาน">เรียนงาน</option>
                   <option value="ติดตั้งใหม่">ติดตั้งใหม่</option>
                   <option value="ซ่อม">ซ่อม</option>
                   <option value="บำรุง">บำรุง</option>
@@ -131,6 +143,7 @@
               <label>
                 ประเภทสถานที่
                 <select name="site_type">
+                  <option value="">ไม่ระบุ</option>
                   <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
                   <option value="โกดัง">โกดัง</option>
                   <option value="โรงงาน">โรงงาน</option>
@@ -148,15 +161,20 @@
               <label>ความมั่นใจหลังทำ (1-5)<input name="confidence_after_task" type="number" min="1" max="5" /></label>
             </div>
 
-            <label>อาการ/ความต้องการลูกค้า<textarea name="symptom_or_requirement" rows="2" required></textarea></label>
+            <label>อาการ/ความต้องการลูกค้า<textarea name="symptom_or_requirement" rows="2" placeholder="บันทึกเป็นประโยคสั้น ๆ ก็ได้"></textarea></label>
             <label>สาเหตุที่คาด<textarea name="suspected_cause" rows="2"></textarea></label>
             <label>วัสดุที่ใช้<textarea name="materials_used" rows="2"></textarea></label>
             <label>เครื่องมือที่ใช้<textarea name="tools_used" rows="2"></textarea></label>
-            <label>ขั้นตอนที่ทำ<textarea name="step_notes" rows="3" required></textarea></label>
+            <label>ขั้นตอนที่ทำ<textarea name="step_notes" rows="3"></textarea></label>
             <label>จุดตรวจคุณภาพ<textarea name="quality_check_points" rows="2"></textarea></label>
             <label>ความเสี่ยงด้านความปลอดภัย<textarea name="safety_risks" rows="2"></textarea></label>
-            <label>คำแนะนำจากอา<textarea name="mentor_tip" rows="2" required></textarea></label>
+            <label>คำแนะนำจากช่าง<textarea name="mentor_tip" rows="2"></textarea></label>
+            <label>ข้อกังวล/ข้อโต้แย้งของลูกค้า<textarea name="customer_objection" rows="2"></textarea></label>
             <label>คำถามที่ยังค้าง<textarea name="open_question" rows="2"></textarea></label>
+            <label>เวลา/ระยะงาน<textarea name="time_spent_note" rows="2" placeholder="เช่น ใช้เวลาซ่อม 45 นาที"></textarea></label>
+            <label>ต้นทุน/ราคาที่ได้ยิน<textarea name="cost_or_price_note" rows="2" placeholder="ค่าอะไหล่, ค่าแรง, ราคาที่เสนอ"></textarea></label>
+            <label>ร้านวัสดุ/ผู้ติดต่อ<textarea name="supplier_name" rows="2" placeholder="ชื่อร้าน, เบอร์, รุ่นอะไหล่"></textarea></label>
+            <label>ข้อคิดเชิงธุรกิจจากงานนี้<textarea name="business_takeaway" rows="2" placeholder="ลูกค้าสนใจอะไร จุดขายควรเป็นแบบไหน"></textarea></label>
             <label>ลิงก์รูปจาก Drive<input name="photo_drive_link" type="url" placeholder="https://drive.google.com/..." /></label>
 
             <div class="inline-actions">
@@ -172,19 +190,22 @@
       <section class="tab-content" id="tab-endday">
         <div class="panel">
           <div class="section-head">
-            <h2>สรุปปลายวัน (กรอกเร็ว)</h2>
-            <p>สำหรับวันที่ต้องการจดเฉพาะสรุปบทเรียนแบบย่อ</p>
+            <h2>บันทึกเร็วปลายวัน</h2>
+            <p>สำหรับวันที่อยากจดแบบสั้น ๆ ก่อนนอนหรือหลังกลับจากหน้างาน</p>
           </div>
 
           <form id="endDayForm" class="stack-form">
             <div class="form-grid two-cols">
-              <label>วันที่<input name="log_date" type="date" required /></label>
-              <label>ชื่ออา/พี่เลี้ยง<input name="mentor_name" required /></label>
+              <label>วันที่<input name="log_date" type="date" /></label>
+              <label>ชื่อช่าง/พี่เลี้ยง<input name="mentor_name" /></label>
             </div>
-            <label>เป้าหมายวันนี้<textarea name="today_goal" rows="2" required></textarea></label>
-            <label>สรุปบทเรียนวันนี้<textarea name="lesson_summary" rows="3" required></textarea></label>
+            <label>เป้าหมายวันนี้<textarea name="today_goal" rows="2"></textarea></label>
+            <label>สรุปบทเรียนวันนี้<textarea name="lesson_summary" rows="3"></textarea></label>
             <label>ความเสี่ยง/สิ่งที่พลาด<textarea name="mistakes_or_risks_observed" rows="2"></textarea></label>
             <label>โฟกัสพรุ่งนี้<textarea name="next_day_focus" rows="2"></textarea></label>
+            <label>ราคาที่ได้ยิน / สิ่งที่ควรถามเรื่องเงิน<textarea name="price_signal" rows="2"></textarea></label>
+            <label>ไอเดียที่ควรเอาไปทำธุรกิจของตัวเอง<textarea name="business_idea" rows="2"></textarea></label>
+            <label>สิ่งที่ต้องตามต่อ<textarea name="follow_up_note" rows="2"></textarea></label>
             <label>ลิงก์รูปจาก Drive (ถ้ามี)<textarea name="photo_drive_links" rows="2" placeholder="https://drive.google.com/..."></textarea></label>
 
             <div class="inline-actions">
@@ -201,12 +222,12 @@
         <div class="panel">
           <div class="section-head">
             <h2>ค้นหา / ย้อนหลัง</h2>
-            <p>ค้นคำจากบทเรียนหรืออาการหน้างาน และดูข้อมูลย้อนหลังได้</p>
+            <p>ค้นคำจากบทเรียน อาการ ราคา ร้านวัสดุ หรือไอเดียธุรกิจ และดูข้อมูลย้อนหลังได้</p>
           </div>
 
           <form id="searchForm" class="stack-form">
             <div class="form-grid two-cols">
-              <label>ค้นคำ<input name="q" placeholder="เช่น มอเตอร์ค้าง, เสียงดัง" /></label>
+              <label>ค้นคำ<input name="q" placeholder="เช่น มอเตอร์ค้าง, ราคา, ร้านวัสดุ, ไอเดียธุรกิจ" /></label>
               <label>Daily ID (ถ้าจะดูเฉพาะงานย่อยของวันนั้น)<input name="daily_id" placeholder="DAY-20260304-001" /></label>
             </div>
             <div class="inline-actions">
@@ -241,21 +262,24 @@
         <div class="panel">
           <div class="section-head">
             <h2>สรุปรายสัปดาห์</h2>
-            <p>ใช้สรุปทุกสิ้นสัปดาห์เพื่อดูพัฒนาการและแผนสัปดาห์ถัดไป</p>
+            <p>ใช้สรุปทุกสิ้นสัปดาห์เพื่อดูพัฒนาการ มุมธุรกิจ และระบบที่ควรสร้างต่อ</p>
           </div>
+          <p class="hint">ถ้าไม่กรอกช่วงวัน ระบบจะใช้สัปดาห์ปัจจุบันให้อัตโนมัติ</p>
 
           <form id="weeklyForm" class="stack-form">
             <div class="form-grid">
-              <label>สัปดาห์ที่ (1-53)<input name="week_no" type="number" min="1" max="53" required /></label>
-              <label>เริ่มวันที่<input name="from_date" type="date" required /></label>
-              <label>ถึงวันที่<input name="to_date" type="date" required /></label>
+              <label>สัปดาห์ที่ (1-53)<input name="week_no" type="number" min="1" max="53" /></label>
+              <label>เริ่มวันที่<input name="from_date" type="date" /></label>
+              <label>ถึงวันที่<input name="to_date" type="date" /></label>
             </div>
 
-            <label>Top Lessons<textarea name="top_lessons" rows="3" required></textarea></label>
+            <label>Top Lessons<textarea name="top_lessons" rows="3"></textarea></label>
             <label>ปัญหาที่เจอซ้ำ<textarea name="repeated_problems" rows="2"></textarea></label>
             <label>ทักษะที่พัฒนา<textarea name="skills_improved" rows="2"></textarea></label>
             <label>ทักษะที่ต้องฝึกเพิ่ม<textarea name="skills_need_practice" rows="2"></textarea></label>
-            <label>แผนสัปดาห์ถัดไป<textarea name="next_week_plan" rows="3" required></textarea></label>
+            <label>แผนสัปดาห์ถัดไป<textarea name="next_week_plan" rows="3"></textarea></label>
+            <label>โอกาสทางธุรกิจที่เริ่มมองเห็น<textarea name="business_opportunities" rows="2" placeholder="เช่น งานซ่อมฉุกเฉิน, แพ็กเกจบำรุงรักษา"></textarea></label>
+            <label>สิ่งที่ควรทำเป็นระบบในธุรกิจตัวเอง<textarea name="process_to_standardize" rows="2" placeholder="เช่น แบบฟอร์มวัดหน้างาน, checklist ส่งมอบ"></textarea></label>
 
             <div class="inline-actions">
               <button class="btn-primary" data-submit-label="บันทึกสรุปรายสัปดาห์" type="submit">บันทึกสรุปรายสัปดาห์</button>

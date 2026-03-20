@@ -7,14 +7,16 @@ services:
     autoDeploy: true
     healthCheckPath: /api/v1/health
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn "rollup_door.app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --threads 4
+    startCommand: gunicorn "rollup_door.app:create_app()" --bind 0.0.0.0:$PORT --workers 1 --threads 4
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
       - key: ROLLUP_ENV
-        value: development
+        value: production
+      - key: ROLLUP_DEBUG
+        value: "false"
       - key: ROLLUP_SPREADSHEET_ID
-        sync: false
+        value: 10D5NNHTMFqiwnwlhRZrFkO0pjDXbpA0BgFGNJ7y0ebQ
       - key: GOOGLE_OAUTH_TOKEN_JSON
         sync: false
       - key: GOOGLE_CLIENT_SECRETS_JSON

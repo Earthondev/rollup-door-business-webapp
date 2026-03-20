@@ -85,9 +85,14 @@ STUDY_DAILY_HEADERS = [
     "safety_briefing_done",
     "tools_prepared",
     "questions_to_ask",
+    "customer_problem",
+    "price_signal",
+    "supplier_or_contact",
     "lesson_summary",
     "mistakes_or_risks_observed",
     "next_day_focus",
+    "business_idea",
+    "follow_up_note",
     "photo_drive_links",
     "created_at",
 ]
@@ -107,11 +112,16 @@ STUDY_TASK_HEADERS = [
     "quality_check_points",
     "safety_risks",
     "mentor_tip",
+    "customer_objection",
     "my_role",
     "difficulty_score",
     "confidence_after_task",
     "open_question",
     "photo_drive_link",
+    "time_spent_note",
+    "cost_or_price_note",
+    "supplier_name",
+    "business_takeaway",
     "created_at",
 ]
 
@@ -125,6 +135,8 @@ STUDY_WEEKLY_REVIEW_HEADERS = [
     "skills_improved",
     "skills_need_practice",
     "next_week_plan",
+    "business_opportunities",
+    "process_to_standardize",
     "created_at",
 ]
 
@@ -202,6 +214,7 @@ DEFAULT_KNOWLEDGE = [
 DEFAULT_STATUS = "New Lead"
 
 DEFAULT_STUDY_LOOKUPS = [
+    ["task_category", "บันทึกทั่วไป", "TRUE", "0"],
     ["task_category", "สำรวจ", "TRUE", "1"],
     ["task_category", "ติดตั้ง", "TRUE", "2"],
     ["task_category", "ซ่อม", "TRUE", "3"],

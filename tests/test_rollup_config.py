@@ -61,13 +61,29 @@ web:
         self.assertEqual(cfg.access_key_secret, "env-secret")
         self.assertEqual(cfg.port, 10001)
 
-    def test_runtime_validation_requires_service_account_in_production(self):
+    def test_runtime_validation_requires_google_credentials_in_production(self):
         cfg_path = self._make_temp_config()
         with patch.dict(os.environ, {"ROLLUP_ENV": "production", "GOOGLE_SERVICE_ACCOUNT_JSON": ""}, clear=False):
             cfg = load_config(cfg_path)
 
         errors = cfg.validate_runtime_requirements()
-        self.assertIn("missing_google_service_account", errors)
+        self.assertIn("missing_google_credentials", errors)
+
+    def test_runtime_validation_accepts_oauth_in_production(self):
+        cfg_path = self._make_temp_config()
+        with patch.dict(
+            os.environ,
+            {
+                "ROLLUP_ENV": "production",
+                "GOOGLE_SERVICE_ACCOUNT_JSON": "",
+                "GOOGLE_OAUTH_TOKEN_JSON": '{"type":"authorized_user","refresh_token":"token"}',
+            },
+            clear=False,
+        ):
+            cfg = load_config(cfg_path)
+
+        errors = cfg.validate_runtime_requirements()
+        self.assertNotIn("missing_google_credentials", errors)
 
 
 if __name__ == "__main__":

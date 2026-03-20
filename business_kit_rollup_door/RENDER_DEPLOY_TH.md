@@ -23,13 +23,15 @@
 ## 4) ใส่ Environment Variables บน Render
 
 ต้องใส่ค่าเหล่านี้:
-- `ROLLUP_SPREADSHEET_ID`
-- `GOOGLE_SERVICE_ACCOUNT_JSON` (วาง JSON string ทั้งก้อน)
+- `GOOGLE_SERVICE_ACCOUNT_JSON` หรือ `GOOGLE_OAUTH_TOKEN_JSON` ที่ยังใช้งานได้
+- ถ้าใช้ OAuth และ token ต้อง refresh ได้ ให้ใส่ `GOOGLE_CLIENT_SECRETS_JSON` คู่กันด้วย
 - `ROLLUP_ACCESS_KEY_ID`
 - `ROLLUP_ACCESS_KEY_SECRET`
 
 ค่าที่มี default ใน render.yaml อยู่แล้ว:
+- `ROLLUP_SPREADSHEET_ID=10D5NNHTMFqiwnwlhRZrFkO0pjDXbpA0BgFGNJ7y0ebQ`
 - `ROLLUP_ENV=production`
+- `ROLLUP_DEBUG=false`
 - `ROLLUP_MARGIN_THRESHOLD_PCT=20`
 - `ROLLUP_RATE_LIMIT_PER_MINUTE=180`
 
@@ -41,8 +43,9 @@
 
 ## 6) Troubleshooting
 
-- ถ้า app ไม่ขึ้นและ log บอก `missing_google_service_account`:
-  ตรวจว่า env `GOOGLE_SERVICE_ACCOUNT_JSON` ใส่ครบและ JSON ถูกต้อง
+- ถ้า API ตอบ `503` และ health มี `missing_google_credentials`:
+  ตัว web service จะบูตได้ แต่ API ที่ต้องใช้ Google Sheets จะยังใช้งานไม่ได้
+  ให้ใส่ `GOOGLE_SERVICE_ACCOUNT_JSON` หรือชุด OAuth (`GOOGLE_OAUTH_TOKEN_JSON` และถ้าจำเป็น `GOOGLE_CLIENT_SECRETS_JSON`) ให้ครบ
 - ถ้าเขียนชีตไม่ได้:
   ตรวจว่าแชร์ชีตให้ Service Account แล้ว
 - ถ้า health เป็น `ok: false`:
